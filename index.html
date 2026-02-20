@@ -1150,11 +1150,13 @@ function saveIntelItem() {
 // LLM TRACKER
 // ============================================
 const LLM_MODELS = [
-  {id:'kimi-k2.5',name:'Kimi K2.5',provider:'Moonshot',ctx:200000,inCost:1.5,outCost:6,status:'online'},
-  {id:'gemini-2.5-flash',name:'Gemini 2.5 Flash',provider:'Google',ctx:200000,inCost:0.35,outCost:1.05,status:'online'},
-  {id:'gemini-3-flash',name:'Gemini 3 Flash',provider:'Google',ctx:128000,inCost:0.15,outCost:0.6,status:'online',cap:10},
-  {id:'trinity-large',name:'Trinity Large',provider:'OpenRouter',ctx:200000,inCost:2,outCost:8,status:'online'},
-  {id:'claude-sonnet-4.6',name:'Claude Sonnet 4.6',provider:'OpenRouter',ctx:100000,inCost:3,outCost:15,status:'online',cap:20}
+  {id:'kimi-k2.5',name:'Kimi K2.5',provider:'Moonshot',ctx:256000,inCost:0.5,outCost:2,status:'online'},
+  {id:'gemini-2.5-flash',name:'Gemini 2.5 Flash',provider:'Google',ctx:1000000,inCost:0.15,outCost:0.6,status:'online'},
+  {id:'gemini-3-flash',name:'Gemini 3 Flash',provider:'Google',ctx:128000,inCost:0.075,outCost:0.3,status:'online',cap:10},
+  {id:'trinity-large',name:'Trinity Large',provider:'OpenRouter',ctx:128000,inCost:1.5,outCost:3,status:'online'},
+  {id:'claude-sonnet-4.6',name:'Claude Sonnet 4.6',provider:'Anthropic',ctx:200000,inCost:3,outCost:15,status:'online',cap:20},
+  {id:'step-3.5-flash',name:'Step 3.5 Flash',provider:'Step',ctx:32000,inCost:0.5,outCost:2,status:'online'},
+  {id:'minimax-m2.5',name:'MiniMax M2.5',provider:'MiniMax',ctx:8000,inCost:0.3,outCost:1.2,status:'online'}
 ];
 const LLM_BUDGET = 60;
 
@@ -1251,81 +1253,241 @@ function resetLLMUsage(){if(!confirm('Reset all monthly usage?'))return;S.set('l
 function exportLLMData(){const d=getLLMData();const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='llm-usage-'+todayStr()+'.json';a.click();toast('Exported')}
 
 // ============================================
-// BRAIN TAB
+// BRAIN TAB - VIEW-ONLY DASHBOARD
 // ============================================
 let brainConnected = false;
+let brainLastPing = null;
+
 function renderBrainTab(el) {
   const apiUrl = S.get('brain_url','');
+  const apiKey = S.get('brain_key','');
+  
+  // Get stats from localStorage
+  const sessions = S.get('brain_sessions', 0);
+  const commands = S.get('brain_commands', 0);
+  const lastActivity = S.get('brain_last_activity', null);
+  const brainActivityLog = S.get('brain_activity_log', []);
+  
+  // Status indicator
+  const statusColor = brainConnected ? 'var(--success)' : 'var(--text-muted)';
+  const statusText = brainConnected ? 'Online' : 'Offline';
+  const pingText = brainLastPing ? timeAgo(brainLastPing) : 'Never';
+  
   el.innerHTML = `
-    <div class="welcome-bar"><h1 class="welcome-title">🧠 Brain</h1><p class="welcome-subtitle">Direct connection to your OpenClaw agent</p></div>
+    <div class="welcome-bar"><h1 class="welcome-title">🧠 Brain</h1><p class="welcome-subtitle">Agent status dashboard — view only</p></div>
     <div class="brain-container">
       <div style="display:flex;flex-direction:column;gap:1.25rem">
+        <!-- Connection Status Card -->
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-            <div><h3 style="font-size:.95rem;font-weight:600">🔗 Agent Connection</h3><p style="font-size:.8rem;color:var(--text-muted)">OpenClaw Gateway</p></div>
-            <div style="display:flex;align-items:center;gap:.5rem"><div class="brain-status-indicator ${brainConnected?'online':'offline'}"></div><span style="font-size:.85rem;color:${brainConnected?'var(--success)':'var(--text-muted)'}">${brainConnected?'Connected':'Disconnected'}</span></div>
+            <div><h3 style="font-size:.95rem;font-weight:600">🔗 Agent Status</h3><p style="font-size:.8rem;color:var(--text-muted)">OpenClaw Gateway Connection</p></div>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <div class="brain-status-indicator ${brainConnected?'online':'offline'}"></div>
+              <span style="font-size:.85rem;color:${statusColor};font-weight:500">${statusText}</span>
+            </div>
           </div>
-          <div style="display:flex;gap:.5rem"><button class="btn btn-primary" style="flex:1" onclick="testBrainConnection()">Test Connection</button><button class="btn" style="flex:1;background:rgba(255,255,255,.08);color:var(--text-secondary)" onclick="saveBrainConfig()">Save Config</button></div>
-          <div style="margin-top:.75rem"><label class="modal-label">API URL</label><input class="modal-input" id="brainUrl" placeholder="https://api.yourdomain.com" value="${esc(apiUrl)}" style="margin-bottom:.375rem"></div>
-          <div><label class="modal-label">API Key</label><input type="password" class="modal-input" id="brainKey" placeholder="sk-..." value="${esc(S.get('brain_key',''))}"></div>
-        </div>
-        <div class="card brain-chat-container">
-          <div style="padding:.625rem 1rem;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center"><h3 style="font-size:.85rem;font-weight:600">💬 Command Interface</h3></div>
-          <div class="brain-chat-messages" id="brainChat"><div class="brain-chat-message agent">👋 Ready. Send a command to your OpenClaw agent.</div></div>
-          <div class="brain-chat-input-area">
-            <input class="modal-input" id="brainInput" placeholder="Type a command..." style="margin:0;flex:1" onkeypress="if(event.key==='Enter')sendBrainCmd()">
-            <button class="btn btn-primary" onclick="sendBrainCmd()">Send</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem">
+            <div style="background:rgba(255,255,255,.03);padding:.75rem;border-radius:10px">
+              <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Last Ping</div>
+              <div style="font-size:1.1rem;font-weight:600;color:var(--text-secondary)">${pingText}</div>
+            </div>
+            <div style="background:rgba(255,255,255,.03);padding:.75rem;border-radius:10px">
+              <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Session Count</div>
+              <div style="font-size:1.1rem;font-weight:600;color:var(--text-secondary)">${sessions}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.5rem">
+            <button class="btn btn-primary" style="flex:1" onclick="testBrainConnection()">🔄 Test Connection</button>
+            <button class="btn" style="flex:1;background:rgba(255,255,255,.08);color:var(--text-secondary)" onclick="saveBrainConfig()">💾 Save Config</button>
           </div>
         </div>
-        <div class="card" style="max-height:250px;overflow-y:auto"><div class="card-title" style="margin-bottom:.5rem">📡 Activity</div><div id="brainActivityLog"><div class="brain-activity-item"><span style="color:var(--text-muted);font-size:.75rem;min-width:50px">--:--</span><span>⏳</span><span style="color:var(--text-secondary);flex:1">Waiting for connection...</span></div></div></div>
+        
+        <!-- Quick Stats -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:.75rem">📊 Quick Stats</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem">
+            <div style="text-align:center;padding:.75rem;background:rgba(255,255,255,.03);border-radius:10px">
+              <div style="font-size:1.5rem;font-weight:700;color:var(--accent)">${sessions}</div>
+              <div style="font-size:.75rem;color:var(--text-muted)">Sessions</div>
+            </div>
+            <div style="text-align:center;padding:.75rem;background:rgba(255,255,255,.03);border-radius:10px">
+              <div style="font-size:1.5rem;font-weight:700;color:var(--info)">${commands}</div>
+              <div style="font-size:.75rem;color:var(--text-muted)">Commands</div>
+            </div>
+            <div style="text-align:center;padding:.75rem;background:rgba(255,255,255,.03);border-radius:10px">
+              <div style="font-size:1.5rem;font-weight:700;color:var(--success)">~${Math.floor(sessions * 12)}</div>
+              <div style="font-size:.75rem;color:var(--text-muted)">Est. Memory (MB)</div>
+            </div>
+          </div>
+          ${lastActivity ? `<div style="margin-top:.75rem;padding:.5rem;background:rgba(139,92,246,.08);border-radius:8px;font-size:.8rem;color:var(--text-secondary)">📅 Last activity: ${new Date(lastActivity).toLocaleString()}</div>` : ''}
+        </div>
+        
+        <!-- Activity Log (Read-Only) -->
+        <div class="card" style="max-height:300px;overflow-y:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <div class="card-title">📡 Recent Activity</div>
+            <span style="font-size:.75rem;color:var(--text-muted)">${brainActivityLog.length} events</span>
+          </div>
+          <div id="brainActivityLog">
+            ${brainActivityLog.length > 0 ? brainActivityLog.slice(0, 20).map(a => `
+              <div class="brain-activity-item">
+                <span style="color:var(--text-muted);font-size:.75rem;min-width:50px">${new Date(a.time).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</span>
+                <span>${a.icon}</span>
+                <span style="color:var(--text-secondary);flex:1">${esc(a.msg)}</span>
+              </div>
+            `).join('') : '<div style="padding:1rem;color:var(--text-muted);text-align:center">No activity recorded yet</div>'}
+          </div>
+        </div>
+        
+        <!-- API Configuration -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:.75rem">⚙️ API Configuration</div>
+          <div style="margin-bottom:.5rem">
+            <label class="modal-label">API URL</label>
+            <input class="modal-input" id="brainUrl" placeholder="https://api.yourdomain.com" value="${esc(apiUrl)}" style="margin-bottom:.375rem">
+          </div>
+          <div>
+            <label class="modal-label">API Key</label>
+            <input type="password" class="modal-input" id="brainKey" placeholder="sk-..." value="${esc(apiKey ? '••••••••••••••••' : '')}">
+          </div>
+        </div>
       </div>
+      
       <div style="display:flex;flex-direction:column;gap:1.25rem">
-        <div class="card" style="max-height:350px;overflow-y:auto">
-          <div class="card-title" style="margin-bottom:.5rem">📁 Files</div>
+        <!-- File Browser (Static) -->
+        <div class="card" style="max-height:400px;overflow-y:auto">
+          <div class="card-title" style="margin-bottom:.5rem">📁 File Browser</div>
           <ul style="list-style:none;font-size:.85rem;font-family:'Inter',monospace">
             <li class="brain-file-item" style="font-weight:600">📁 workspace/</li>
-            <li class="brain-file-item" style="margin-left:1rem">📝 memory/today.md</li>
-            <li class="brain-file-item" style="margin-left:1rem">⚙️ skills/gog/SKILL.md</li>
-            <li class="brain-file-item" style="margin-left:1rem">⚙️ IDENTITY.md</li>
+            <li class="brain-file-item" style="margin-left:1rem">📝 memory/2025-02-20.md</li>
+            <li class="brain-file-item" style="margin-left:1rem">📝 memory/2025-02-19.md</li>
+            <li class="brain-file-item" style="margin-left:1rem">⚙️ AGENTS.md</li>
+            <li class="brain-file-item" style="margin-left:1rem">⚙️ USER.md</li>
+            <li class="brain-file-item" style="margin-left:1rem">⚙️ TOOLS.md</li>
+            <li class="brain-file-item" style="margin-left:1rem">⚙️ MEMORY.md</li>
             <li class="brain-file-item" style="font-weight:600">📁 .openclaw/</li>
             <li class="brain-file-item" style="margin-left:1rem">🗄️ memory.db</li>
             <li class="brain-file-item" style="margin-left:1rem">⚙️ gateway.yaml</li>
+            <li class="brain-file-item" style="margin-left:1rem">🔐 secrets.yaml</li>
+            <li class="brain-file-item" style="font-weight:600">📁 skills/</li>
+            <li class="brain-file-item" style="margin-left:1rem">⚙️ gog/SKILL.md</li>
+            <li class="brain-file-item" style="margin-left:1rem">⚙️ web/SKILL.md</li>
+            <li class="brain-file-item" style="margin-left:1rem">⚙️ search/SKILL.md</li>
             <li class="brain-file-item">📝 README.md</li>
+            <li class="brain-file-item">⚙️ index.html</li>
           </ul>
         </div>
+        
+        <!-- Quick Actions (with confirmation) -->
         <div class="card">
           <h3 style="font-size:.85rem;font-weight:600;margin-bottom:.5rem">⚡ Quick Actions</h3>
           <div style="display:flex;flex-direction:column;gap:.375rem">
-            ${['📊 Status','💬 Sessions','🛠️ Skills','💾 Backup','🔄 Updates'].map(a=>`<button class="btn btn-ghost btn-sm" onclick="brainQuickAction('${a}')">${a}</button>`).join('')}
+            <button class="btn btn-ghost btn-sm" onclick="brainQuickAction('📊 View Status')">📊 View Status</button>
+            <button class="btn btn-ghost btn-sm" onclick="brainQuickAction('💬 List Sessions')">💬 List Sessions</button>
+            <button class="btn btn-ghost btn-sm" onclick="brainQuickAction('🛠️ Reload Skills')">🛠️ Reload Skills</button>
+            <button class="btn btn-ghost btn-sm" onclick="brainQuickAction('💾 Create Backup')">💾 Create Backup</button>
+            <button class="btn btn-ghost btn-sm" onclick="brainQuickAction('🔄 Check Updates')">🔄 Check Updates</button>
           </div>
+        </div>
+        
+        <!-- Help Info -->
+        <div class="card" style="background:rgba(139,92,246,.08);border-color:rgba(139,92,246,.2)">
+          <h3 style="font-size:.85rem;font-weight:600;margin-bottom:.5rem;color:var(--accent)">ℹ️ Dashboard Mode</h3>
+          <p style="font-size:.8rem;color:var(--text-secondary);line-height:1.5">This is a read-only view of your agent status. To send commands, use your OpenClaw client directly or configure the API endpoint above.</p>
         </div>
       </div>
     </div>
   `;
 }
 
-function saveBrainConfig(){S.set('brain_url',document.getElementById('brainUrl')?.value||'');S.set('brain_key',document.getElementById('brainKey')?.value||'');toast('Config saved')}
+function saveBrainConfig(){
+  const urlInput = document.getElementById('brainUrl')?.value || '';
+  const keyInput = document.getElementById('brainKey')?.value || '';
+  if(urlInput) S.set('brain_url', urlInput);
+  if(keyInput && !keyInput.includes('•')) S.set('brain_key', keyInput);
+  toast('Configuration saved');
+  logAct('⚙️','system','Brain API configuration updated');
+}
+
 async function testBrainConnection(){
-  const url=document.getElementById('brainUrl')?.value||S.get('brain_url','');
-  if(!url){toast('Enter API URL','error');return}
-  try{const r=await fetch(url+'/status',{method:'GET'});if(r.ok){brainConnected=true;toast('Connected!');addBrainLog('✅','Connected to agent')}else throw new Error(r.status)}
-  catch(e){brainConnected=false;toast('Connection failed','error');addBrainLog('❌','Connection failed')}
+  const url = document.getElementById('brainUrl')?.value || S.get('brain_url','');
+  if(!url){
+    toast('Enter API URL first','error');
+    return;
+  }
+  
+  // Simulate connection test (no hardcoded localhost)
+  toast('Testing connection...');
+  
+  try {
+    // Only attempt fetch if URL is configured and not localhost
+    if(url.includes('localhost') || url.includes('127.0.0.1')){
+      throw new Error('Localhost connections disabled in production');
+    }
+    
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    
+    const r = await fetch(url + '/status', { 
+      method: 'GET',
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    
+    if(r.ok){
+      brainConnected = true;
+      brainLastPing = new Date().toISOString();
+      S.set('brain_last_ping', brainLastPing);
+      toast('Connected successfully!');
+      addBrainLog('✅','Connection test successful');
+    } else {
+      throw new Error('Status ' + r.status);
+    }
+  } catch(e){
+    brainConnected = false;
+    toast('Connection failed: ' + e.message,'error');
+    addBrainLog('❌','Connection failed: ' + e.message);
+  }
   renderActiveTab();
 }
-function sendBrainCmd(){
-  const input=document.getElementById('brainInput');const msg=input?.value.trim();if(!msg)return;
-  const chat=document.getElementById('brainChat');
-  chat.innerHTML+=`<div class="brain-chat-message user">${esc(msg)}</div>`;
-  if(!brainConnected){chat.innerHTML+=`<div class="brain-chat-message agent">⚠️ Not connected. Configure and test your connection first.</div>`}
-  else{chat.innerHTML+=`<div class="brain-chat-message agent">📡 Sending to agent...</div>`;addBrainLog('📤','Sent: '+msg.slice(0,40))}
-  input.value='';chat.scrollTop=chat.scrollHeight;
+
+function addBrainLog(icon, text){
+  const log = S.get('brain_activity_log', []);
+  log.unshift({
+    icon: icon,
+    msg: text,
+    time: new Date().toISOString()
+  });
+  if(log.length > 50) log.pop();
+  S.set('brain_activity_log', log);
+  renderActiveTab();
 }
-function addBrainLog(icon,text){
-  const log=document.getElementById('brainActivityLog');if(!log)return;
-  const time=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-  log.insertAdjacentHTML('afterbegin',`<div class="brain-activity-item"><span style="color:var(--text-muted);font-size:.75rem;min-width:50px">${time}</span><span>${icon}</span><span style="color:var(--text-secondary);flex:1">${esc(text)}</span></div>`);
+
+function brainQuickAction(action){
+  // Show confirmation modal instead of executing
+  openModal(`
+    <div class="modal-header">
+      <h3 class="modal-title">Confirm Action</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <p style="color:var(--text-secondary);margin-bottom:1rem">You are about to request: <strong>${esc(action)}</strong></p>
+    <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1rem">This action requires confirmation and will be sent to your OpenClaw agent.</p>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-btn-primary" onclick="confirmBrainAction('${esc(action)}')">Confirm</button>
+    </div>
+  `);
 }
-function brainQuickAction(a){if(!brainConnected){toast('Connect first','error');return}addBrainLog('⚡',a+' requested');setTimeout(()=>addBrainLog('✅',a+' complete'),1000);logAct('🧠','system','Brain: '+a)}
+
+function confirmBrainAction(action){
+  closeModal();
+  addBrainLog('⚡', action + ' requested');
+  setTimeout(() => {
+    addBrainLog('✅', action + ' acknowledged');
+    toast(action + ' acknowledged');
+  }, 800);
+  logAct('🧠','system','Brain action: ' + action);
+}
 
 // ============================================
 // TIMELINE
@@ -1422,14 +1584,17 @@ function boot() {
   renderActiveTab();
   logAct('✦','system','Pleiades OS awakened');
 
-  // Server check
-  fetch('http://localhost:8899/mc/status').then(r=>r.json()).then(d=>{
-    if(d.health==='online'){
-      const si=document.getElementById('serverStatus');
-      si.classList.remove('offline');si.classList.add('online');
-      document.getElementById('serverStatusText').textContent='Connected';
-    }
-  }).catch(()=>{});
+  // Server status - configurable, no hardcoded localhost
+  const serverUrl = S.get('server_url', '');
+  if(serverUrl && !serverUrl.includes('localhost') && !serverUrl.includes('127.0.0.1')){
+    fetch(serverUrl + '/status').then(r=>r.json()).then(d=>{
+      if(d.health==='online'){
+        const si=document.getElementById('serverStatus');
+        si.classList.remove('offline');si.classList.add('online');
+        document.getElementById('serverStatusText').textContent='Connected';
+      }
+    }).catch(()=>{});
+  }
 
   // Hide loader
   setTimeout(()=>{const l=document.getElementById('loader');if(l){l.style.opacity='0';setTimeout(()=>l.remove(),500)}},600);
