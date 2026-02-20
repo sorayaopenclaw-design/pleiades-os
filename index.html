@@ -1167,6 +1167,274 @@
       border: 1px solid var(--border-subtle);
       border-radius: 16px;
     }
+
+    /* ============================================
+       LLM TRACKER TAB STYLES
+       ============================================ */
+    .llm-wallet-overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .llm-wallet-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .llm-wallet-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), #ec4899);
+    }
+    .llm-wallet-label {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+    .llm-wallet-value {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .llm-wallet-value.warning { color: var(--warning); }
+    .llm-wallet-value.danger { color: var(--danger); }
+    .llm-progress-container {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 9999px;
+      height: 8px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+    .llm-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #ec4899);
+      border-radius: 9999px;
+      transition: width 0.5s ease;
+    }
+    .llm-progress-bar.warning { background: linear-gradient(90deg, var(--warning), #fbbf24); }
+    .llm-progress-bar.danger { background: linear-gradient(90deg, var(--danger), #f87171); }
+    .llm-models-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .llm-model-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 1.25rem;
+      transition: all 0.3s;
+      position: relative;
+    }
+    .llm-model-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px rgba(139, 92, 246, 0.15);
+    }
+    .llm-model-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .llm-model-name {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    .llm-status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .llm-status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .llm-status-dot.offline { background: var(--danger); }
+    .llm-status-dot.busy { background: var(--warning); animation: pulse 2s infinite; }
+    .llm-context-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    .llm-context-thermometer {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 9999px;
+      height: 24px;
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    .llm-context-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #10b981);
+      border-radius: 9999px;
+      transition: width 0.5s ease;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: white;
+    }
+    .llm-context-fill.warning { background: linear-gradient(90deg, var(--warning), #fbbf24); }
+    .llm-context-fill.danger { background: linear-gradient(90deg, var(--danger), #f87171); }
+    .llm-pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      font-size: 0.85rem;
+    }
+    .llm-pricing-item {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.75rem;
+      border-radius: 8px;
+    }
+    .llm-pricing-label { color: var(--text-muted); font-size: 0.75rem; }
+    .llm-pricing-value { font-weight: 600; color: var(--text-secondary); }
+    .llm-usage-logs {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .llm-logs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .llm-logs-table th {
+      text-align: left;
+      padding: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .llm-logs-table td {
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+    }
+    .llm-logs-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .llm-token-chart {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .llm-chart-container {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      height: 200px;
+      gap: 0.75rem;
+      padding: 1rem 0;
+    }
+    .llm-chart-bar-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .llm-chart-bar {
+      width: 100%;
+      background: linear-gradient(180deg, var(--accent), rgba(139, 92, 246, 0.3));
+      border-radius: 8px 8px 0 0;
+      transition: height 0.5s ease;
+      min-height: 4px;
+    }
+    .llm-chart-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .llm-chart-value {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .llm-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .llm-action-btn {
+      padding: 0.75rem 1.5rem;
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .llm-action-btn:hover {
+      background: var(--accent);
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+    }
+    .llm-action-btn.secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border-subtle);
+    }
+    .llm-action-btn.secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: none;
+    }
+    .llm-empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+    }
+    .llm-monthly-cap {
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .llm-cap-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .llm-cap-value {
+      font-weight: 600;
+      color: var(--accent);
+    }
+
     @media (max-width: 1024px) {
       .intel-container { grid-template-columns: 1fr; }
       .intel-sidebar { position: static; }
@@ -1264,6 +1532,7 @@
       </div>
       <nav class="nav-tabs">
         <button class="nav-tab active" data-tab="dashboard">✨ Today</button>
+        <button class="nav-tab" data-tab="llm-tracker">🤖 LLM Tracker</button>
         <button class="nav-tab" data-tab="projects">🎯 Path</button>
         <button class="nav-tab" data-tab="command">🌟 Collective</button>
         <button class="nav-tab" data-tab="meetings">📞 Rituals</button>
@@ -1477,6 +1746,121 @@
             </div>
           </div>
         </main>
+      </div>
+    </div>
+
+    <!-- LLM TRACKER TAB -->
+    <div class="tab-content" id="llm-tracker">
+      <div class="welcome-bar">
+        <h1 class="welcome-title">🤖 LLM Tracker</h1>
+        <p class="welcome-subtitle">Monitor your AI constellation — usage, costs, and connections</p>
+      </div>
+
+      <!-- Monthly Cap Overview -->
+      <div class="llm-monthly-cap">
+        <div class="llm-cap-label">
+          💰 Monthly Budget Cap
+          <span style="color: var(--text-muted); font-size: 0.8rem;">(Combined Claude + Gemini)</span>
+        </div>
+        <div class="llm-cap-value" id="monthlyCapDisplay">$30 / $60</div>
+      </div>
+
+      <!-- API Wallet Overview -->
+      <div class="llm-wallet-overview">
+        <div class="llm-wallet-card">
+          <div class="llm-wallet-label">Credits Remaining</div>
+          <div class="llm-wallet-value" id="creditsRemaining">$45.00</div>
+          <div class="llm-progress-container">
+            <div class="llm-progress-bar" id="creditsProgress" style="width: 75%;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
+            <span>$0</span>
+            <span id="creditsPercent">75% left</span>
+            <span>$60</span>
+          </div>
+        </div>
+        <div class="llm-wallet-card">
+          <div class="llm-wallet-label">Spent This Month</div>
+          <div class="llm-wallet-value" id="spentThisMonth">$15.00</div>
+          <div class="llm-progress-container">
+            <div class="llm-progress-bar warning" id="spentProgress" style="width: 25%;"></div>
+          </div>
+          <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
+            <span id="spentPercent">25% of budget</span>
+          </div>
+        </div>
+        <div class="llm-wallet-card">
+          <div class="llm-wallet-label">Est. Days Left</div>
+          <div class="llm-wallet-value" id="daysLeft">18</div>
+          <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+            Based on <span id="avgDailySpend">$0.83</span>/day average
+          </div>
+          <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
+            <span id="usageTrend">📈 Trending normal</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Connected Models Grid -->
+      <div class="welcome-bar" style="margin-bottom: 1rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600;">🌐 Connected Models</h2>
+      </div>
+      <div class="llm-models-grid" id="llmModelsGrid">
+        <!-- Models will be rendered here by JS -->
+      </div>
+
+      <!-- Token Efficiency Chart -->
+      <div class="llm-token-chart">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.1rem; font-weight: 600;">📊 Token Usage (Last 7 Days)</h2>
+          <span style="font-size: 0.85rem; color: var(--text-muted);">Total: <span id="weekTotalTokens">0</span> tokens</span>
+        </div>
+        <div class="llm-chart-container" id="tokenChartContainer">
+          <!-- Chart bars rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Usage Logs -->
+      <div class="llm-usage-logs">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.1rem; font-weight: 600;">📝 Recent Usage Logs</h2>
+          <span style="font-size: 0.85rem; color: var(--text-muted);">Last 50 requests</span>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="llm-logs-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Model</th>
+                <th>Tokens In</th>
+                <th>Tokens Out</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody id="usageLogsTable">
+              <!-- Logs rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div class="llm-empty-state" id="emptyLogsMsg" style="display: none;">
+          No usage logs yet. Start chatting to see your AI spending!
+        </div>
+      </div>
+
+      <!-- Manual Override Actions -->
+      <div class="welcome-bar" style="margin-bottom: 1rem;">
+        <h2 style="font-size: 1.1rem; font-weight: 600;">⚙️ Manual Controls</h2>
+      </div>
+      <div class="llm-actions">
+        <button class="llm-action-btn" onclick="refreshLLMCredits()">
+          🔄 Refresh API Credits
+        </button>
+        <button class="llm-action-btn secondary" onclick="resetMonthlyUsage()">
+          🗑️ Reset Monthly Usage
+        </button>
+        <button class="llm-action-btn secondary" onclick="exportUsageData()">
+          📤 Export Data
+        </button>
       </div>
     </div>
 
@@ -2984,6 +3368,410 @@
       renderIntel();
     }
 
+    // ============================================
+    // LLM TRACKER - Model Monitoring & Cost Tracking
+    // ============================================
+    const LLM_MODELS = [
+      {
+        id: 'moonshot/kimi-k2.5',
+        name: 'Kimi K2.5',
+        provider: 'Moonshot',
+        contextWindow: 200000,
+        maxTokens: 8192,
+        inputCost: 0.0000015,
+        outputCost: 0.000006,
+        status: 'online'
+      },
+      {
+        id: 'gemini/gemini-2.5-flash',
+        name: 'Gemini 2.5 Flash',
+        provider: 'Google',
+        contextWindow: 200000,
+        maxTokens: 8192,
+        inputCost: 0.00000035,
+        outputCost: 0.00000105,
+        status: 'online'
+      },
+      {
+        id: 'gemini/gemini-3-flash-preview',
+        name: 'Gemini 3 Flash Preview',
+        provider: 'Google',
+        contextWindow: 128000,
+        maxTokens: 4096,
+        inputCost: 0.00000015,
+        outputCost: 0.0000006,
+        status: 'online',
+        monthlyCap: 10
+      },
+      {
+        id: 'openrouter/trinity-large-preview',
+        name: 'Trinity Large Preview',
+        provider: 'OpenRouter',
+        contextWindow: 200000,
+        maxTokens: 8192,
+        inputCost: 0.000002,
+        outputCost: 0.000008,
+        status: 'online'
+      },
+      {
+        id: 'openrouter/step-3.5-flash',
+        name: 'Step 3.5 Flash',
+        provider: 'OpenRouter',
+        contextWindow: 200000,
+        maxTokens: 8192,
+        inputCost: 0.0000004,
+        outputCost: 0.0000016,
+        status: 'online'
+      },
+      {
+        id: 'openrouter/m2.5',
+        name: 'MiniMax M2.5',
+        provider: 'OpenRouter',
+        contextWindow: 200000,
+        maxTokens: 8192,
+        inputCost: 0.0000003,
+        outputCost: 0.0000012,
+        status: 'online'
+      },
+      {
+        id: 'openrouter/anthropic/claude-sonnet-4.6',
+        name: 'Claude Sonnet 4.6',
+        provider: 'OpenRouter',
+        contextWindow: 100000,
+        maxTokens: 4096,
+        inputCost: 0.000003,
+        outputCost: 0.000015,
+        status: 'online',
+        monthlyCap: 20
+      }
+    ];
+
+    const LLM_BUDGET = {
+      monthlyTotal: 60,
+      combinedCap: 30,
+      claudeCap: 20,
+      gemini3Cap: 10
+    };
+
+    function loadLLMData() {
+      const data = Storage.get('mc_llm_data', null);
+      if (!data) {
+        // Generate sample data for first-time users
+        const today = new Date();
+        const sampleLogs = [];
+        const dailyUsage = {};
+        const modelUsage = {};
+        let totalSpend = 0;
+        
+        // Generate 5 sample requests from the past few days
+        for (let i = 0; i < 5; i++) {
+          const date = new Date(today);
+          date.setHours(date.getHours() - i * 2);
+          const dateStr = date.toISOString().split('T')[0];
+          
+          const model = LLM_MODELS[i % LLM_MODELS.length];
+          const tokensIn = 500 + Math.floor(Math.random() * 1000);
+          const tokensOut = 200 + Math.floor(Math.random() * 500);
+          const cost = (tokensIn * model.inputCost + tokensOut * model.outputCost) / 1000000;
+          
+          sampleLogs.push({
+            id: Date.now() - i * 1000,
+            timestamp: date.toISOString(),
+            modelId: model.id,
+            modelName: model.name,
+            tokensIn: tokensIn,
+            tokensOut: tokensOut,
+            cost: cost
+          });
+          
+          totalSpend += cost;
+          
+          if (!dailyUsage[dateStr]) {
+            dailyUsage[dateStr] = 0;
+          }
+          dailyUsage[dateStr] += tokensIn + tokensOut;
+          
+          if (!modelUsage[model.id]) {
+            modelUsage[model.id] = { tokens: 0, cost: 0 };
+          }
+          modelUsage[model.id].tokens += tokensIn + tokensOut;
+          modelUsage[model.id].cost += cost;
+        }
+        
+        return {
+          monthlySpend: totalSpend,
+          creditsRemaining: LLM_BUDGET.monthlyTotal - totalSpend,
+          usageLogs: sampleLogs,
+          dailyUsage: dailyUsage,
+          modelUsage: modelUsage
+        };
+      }
+      return data;
+    }
+
+    function saveLLMData(data) {
+      Storage.set('mc_llm_data', data);
+    }
+
+    function logLLMRequest(modelId, tokensIn, tokensOut) {
+      const data = loadLLMData();
+      const model = LLM_MODELS.find(m => m.id === modelId) || LLM_MODELS[0];
+      
+      const cost = (tokensIn * model.inputCost + tokensOut * model.outputCost) / 1000000;
+      
+      const logEntry = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        modelId: modelId,
+        modelName: model.name,
+        tokensIn: tokensIn,
+        tokensOut: tokensOut,
+        cost: cost
+      };
+      
+      data.usageLogs.unshift(logEntry);
+      if (data.usageLogs.length > 100) {
+        data.usageLogs = data.usageLogs.slice(0, 100);
+      }
+      
+      data.monthlySpend += cost;
+      data.creditsRemaining = Math.max(0, LLM_BUDGET.monthlyTotal - data.monthlySpend);
+      
+      const today = new Date().toISOString().split('T')[0];
+      if (!data.dailyUsage[today]) {
+        data.dailyUsage[today] = 0;
+      }
+      data.dailyUsage[today] += tokensIn + tokensOut;
+      
+      if (!data.modelUsage[modelId]) {
+        data.modelUsage[modelId] = { tokens: 0, cost: 0 };
+      }
+      data.modelUsage[modelId].tokens += tokensIn + tokensOut;
+      data.modelUsage[modelId].cost += cost;
+      
+      saveLLMData(data);
+      renderLLMTracker();
+      
+      if (data.creditsRemaining < 10) {
+        showToast('⚠️ Low on API credits: $' + data.creditsRemaining.toFixed(2) + ' remaining', 'warning');
+      }
+    }
+
+    function renderLLMTracker() {
+      const data = loadLLMData();
+      
+      // Update wallet overview
+      document.getElementById('creditsRemaining').textContent = '$' + data.creditsRemaining.toFixed(2);
+      document.getElementById('spentThisMonth').textContent = '$' + data.monthlySpend.toFixed(2);
+      document.getElementById('monthlyCapDisplay').textContent = '$' + data.monthlySpend.toFixed(2) + ' / $' + LLM_BUDGET.monthlyTotal;
+      
+      const creditsPercent = (data.creditsRemaining / LLM_BUDGET.monthlyTotal) * 100;
+      const spentPercent = (data.monthlySpend / LLM_BUDGET.monthlyTotal) * 100;
+      
+      document.getElementById('creditsProgress').style.width = creditsPercent + '%';
+      document.getElementById('creditsProgress').className = 'llm-progress-bar' + (creditsPercent < 20 ? ' danger' : creditsPercent < 40 ? ' warning' : '');
+      document.getElementById('creditsPercent').textContent = creditsPercent.toFixed(0) + '% left';
+      
+      document.getElementById('spentProgress').style.width = spentPercent + '%';
+      document.getElementById('spentProgress').className = 'llm-progress-bar' + (spentPercent > 80 ? ' danger' : spentPercent > 60 ? ' warning' : '');
+      document.getElementById('spentPercent').textContent = spentPercent.toFixed(0) + '% of budget';
+      
+      // Calculate days left
+      const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+      const currentDay = new Date().getDate();
+      const daysRemaining = daysInMonth - currentDay + 1;
+      const avgDailySpend = currentDay > 1 ? data.monthlySpend / (currentDay - 1) : data.monthlySpend;
+      const estDaysLeft = avgDailySpend > 0 ? Math.floor(data.creditsRemaining / avgDailySpend) : daysRemaining;
+      
+      document.getElementById('daysLeft').textContent = Math.min(estDaysLeft, daysRemaining);
+      document.getElementById('avgDailySpend').textContent = '$' + avgDailySpend.toFixed(2);
+      
+      const trend = avgDailySpend > (LLM_BUDGET.monthlyTotal / daysInMonth) ? '📈 Above average' : '📉 Below average';
+      document.getElementById('usageTrend').textContent = trend;
+      
+      // Render models grid
+      renderLLMModels(data);
+      
+      // Render token chart
+      renderTokenChart(data);
+      
+      // Render usage logs
+      renderUsageLogs(data);
+    }
+
+    function renderLLMModels(data) {
+      const container = document.getElementById('llmModelsGrid');
+      if (!container) return;
+      
+      container.innerHTML = LLM_MODELS.map(model => {
+        const usage = data.modelUsage[model.id] || { tokens: 0, cost: 0 };
+        const usagePercent = Math.min((usage.tokens / 1000000) * 100, 100);
+        const statusClass = model.status === 'online' ? 'online' : model.status === 'busy' ? 'busy' : 'offline';
+        const hasCap = model.monthlyCap ? `<div style="font-size: 0.75rem; color: var(--warning); margin-top: 0.25rem;">📊 Cap: $${model.monthlyCap}/mo</div>` : '';
+        
+        return `
+          <div class="llm-model-card">
+            <div class="llm-model-header">
+              <div class="llm-model-name">${escapeHtml(model.name)}</div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="llm-status-dot ${statusClass}"></span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">${model.status}</span>
+              </div>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">${escapeHtml(model.provider)}</div>
+            ${hasCap}
+            <div class="llm-context-label">
+              <span>Context Usage</span>
+              <span>${(usage.tokens / 1000).toFixed(1)}k tokens</span>
+            </div>
+            <div class="llm-context-thermometer">
+              <div class="llm-context-fill ${usagePercent > 80 ? 'danger' : usagePercent > 50 ? 'warning' : ''}" style="width: ${Math.max(usagePercent, 5)}%;">
+                ${usagePercent > 15 ? usagePercent.toFixed(0) + '%' : ''}
+              </div>
+            </div>
+            <div class="llm-context-label" style="margin-top: 0.75rem;">
+              <span>Window: ${(model.contextWindow / 1000).toFixed(0)}k</span>
+              <span>Max: ${model.maxTokens.toLocaleString()} tokens</span>
+            </div>
+            <div class="llm-pricing-grid" style="margin-top: 0.75rem;">
+              <div class="llm-pricing-item">
+                <div class="llm-pricing-label">Input / 1M</div>
+                <div class="llm-pricing-value">$${model.inputCost.toFixed(4)}</div>
+              </div>
+              <div class="llm-pricing-item">
+                <div class="llm-pricing-label">Output / 1M</div>
+                <div class="llm-pricing-value">$${model.outputCost.toFixed(4)}</div>
+              </div>
+            </div>
+            <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle); font-size: 0.85rem; color: var(--text-secondary);">
+              💵 Total spent: $${usage.cost.toFixed(3)}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTokenChart(data) {
+      const container = document.getElementById('tokenChartContainer');
+      if (!container) return;
+      
+      const days = [];
+      const today = new Date();
+      let weekTotal = 0;
+      
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+        const tokens = data.dailyUsage[dateStr] || 0;
+        weekTotal += tokens;
+        days.push({ day: dayName, tokens: tokens });
+      }
+      
+      document.getElementById('weekTotalTokens').textContent = (weekTotal / 1000).toFixed(1) + 'k';
+      
+      const maxTokens = Math.max(...days.map(d => d.tokens), 1000);
+      
+      container.innerHTML = days.map(day => {
+        const height = maxTokens > 0 ? (day.tokens / maxTokens) * 100 : 0;
+        return `
+          <div class="llm-chart-bar-wrapper">
+            <div class="llm-chart-value">${(day.tokens / 1000).toFixed(0)}k</div>
+            <div class="llm-chart-bar" style="height: ${Math.max(height, 4)}%;"></div>
+            <div class="llm-chart-label">${day.day}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderUsageLogs(data) {
+      const tbody = document.getElementById('usageLogsTable');
+      const emptyMsg = document.getElementById('emptyLogsMsg');
+      
+      if (!tbody) return;
+      
+      if (data.usageLogs.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+      }
+      
+      if (emptyMsg) emptyMsg.style.display = 'none';
+      
+      tbody.innerHTML = data.usageLogs.slice(0, 50).map(log => {
+        const time = new Date(log.timestamp).toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+        return `
+          <tr>
+            <td>${time}</td>
+            <td>${escapeHtml(log.modelName)}</td>
+            <td>${log.tokensIn.toLocaleString()}</td>
+            <td>${log.tokensOut.toLocaleString()}</td>
+            <td>$${log.cost.toFixed(4)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function refreshLLMCredits() {
+      const data = loadLLMData();
+      data.lastRefreshed = new Date().toISOString();
+      saveLLMData(data);
+      renderLLMTracker();
+      showToast('✅ API credits refreshed');
+      logActivity('Refreshed LLM credits');
+    }
+
+    function resetMonthlyUsage() {
+      if (!confirm('⚠️ Reset all monthly usage data? This cannot be undone.')) return;
+      
+      const data = {
+        monthlySpend: 0,
+        creditsRemaining: LLM_BUDGET.monthlyTotal,
+        usageLogs: [],
+        dailyUsage: {},
+        modelUsage: {}
+      };
+      
+      saveLLMData(data);
+      renderLLMTracker();
+      showToast('🗑️ Monthly usage reset');
+      logActivity('Reset LLM monthly usage');
+    }
+
+    function exportUsageData() {
+      const data = loadLLMData();
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        budget: LLM_BUDGET,
+        data: data
+      };
+      
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'llm-usage-' + new Date().toISOString().split('T')[0] + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showToast('📤 Usage data exported');
+      logActivity('Exported LLM usage data');
+    }
+
+    function initLLMTracker() {
+      renderLLMTracker();
+      
+      // Refresh every 5 minutes
+      setInterval(renderLLMTracker, 5 * 60 * 1000);
+    }
+
     // Initialize Command Center
     function initCommandCenter() {
       renderAgents();
@@ -2994,6 +3782,7 @@
     initCommandCenter();
     initMeetings();
     initIntel();
+    initLLMTracker();
     init();
 
     // Hide loader after init
