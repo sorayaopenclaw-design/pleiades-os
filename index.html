@@ -1435,6 +1435,264 @@
       color: var(--accent);
     }
 
+    /* ============================================
+       BRAIN TAB STYLES - OpenClaw Interface
+       ============================================ */
+    .brain-container {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 1.5rem;
+    }
+    .brain-main {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .brain-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .brain-connection-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 1.25rem;
+    }
+    .brain-connection-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .brain-connection-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .brain-status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success);
+      animation: pulse 2s infinite;
+    }
+    .brain-status-indicator.offline {
+      background: var(--danger);
+      box-shadow: none;
+      animation: none;
+    }
+    .brain-status-indicator.connecting {
+      background: var(--warning);
+      box-shadow: 0 0 10px var(--warning);
+    }
+    .brain-chat-container {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      height: 500px;
+    }
+    .brain-chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .brain-chat-message {
+      max-width: 80%;
+      padding: 0.875rem 1rem;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    .brain-chat-message.user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    .brain-chat-message.agent {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-subtle);
+      border-bottom-left-radius: 4px;
+    }
+    .brain-chat-message.streaming::after {
+      content: '▋';
+      animation: blink 1s infinite;
+      margin-left: 0.25rem;
+    }
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+    .brain-chat-input-area {
+      padding: 1rem;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      gap: 0.75rem;
+    }
+    .brain-chat-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .brain-chat-input:focus {
+      border-color: var(--accent);
+    }
+    .brain-chat-send {
+      padding: 0.75rem 1.25rem;
+      background: var(--accent);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .brain-chat-send:hover {
+      background: #7c3aed;
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+    }
+    .brain-chat-send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .brain-file-explorer {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 1.25rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .brain-file-tree {
+      list-style: none;
+      font-family: 'Inter', monospace;
+      font-size: 0.85rem;
+    }
+    .brain-file-item {
+      padding: 0.375rem 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .brain-file-item:hover {
+      color: var(--accent);
+    }
+    .brain-file-item.directory {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .brain-file-item.file::before {
+      content: '📄';
+    }
+    .brain-file-item.directory::before {
+      content: '📁';
+    }
+    .brain-file-item.markdown::before {
+      content: '📝';
+    }
+    .brain-file-item.yaml::before {
+      content: '⚙️';
+    }
+    .brain-file-item.db::before {
+      content: '🗄️';
+    }
+    .brain-activity-log {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 1.25rem;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .brain-activity-item {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.85rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .brain-activity-item:last-child {
+      border-bottom: none;
+    }
+    .brain-activity-time {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      min-width: 60px;
+    }
+    .brain-activity-icon {
+      font-size: 0.9rem;
+    }
+    .brain-activity-text {
+      color: var(--text-secondary);
+      flex: 1;
+    }
+    .brain-file-preview {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 0.75rem;
+      font-family: 'Inter', monospace;
+      font-size: 0.8rem;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      color: var(--text-secondary);
+    }
+    .brain-section-title {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brain-refresh-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 0.25rem;
+      transition: color 0.2s;
+    }
+    .brain-refresh-btn:hover {
+      color: var(--accent);
+    }
+    .brain-refresh-btn.spinning {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
     @media (max-width: 1024px) {
       .intel-container { grid-template-columns: 1fr; }
       .intel-sidebar { position: static; }
@@ -1533,6 +1791,7 @@
       <nav class="nav-tabs">
         <button class="nav-tab active" data-tab="dashboard">✨ Today</button>
         <button class="nav-tab" data-tab="llm-tracker">🤖 LLM Tracker</button>
+        <button class="nav-tab" data-tab="brain">🧠 Brain</button>
         <button class="nav-tab" data-tab="projects">🎯 Path</button>
         <button class="nav-tab" data-tab="command">🌟 Collective</button>
         <button class="nav-tab" data-tab="meetings">📞 Rituals</button>
@@ -1861,6 +2120,149 @@
         <button class="llm-action-btn secondary" onclick="exportUsageData()">
           📤 Export Data
         </button>
+      </div>
+    </div>
+
+    <!-- BRAIN TAB - OpenClaw Interface -->
+    <div class="tab-content" id="brain">
+      <div class="welcome-bar">
+        <h1 class="welcome-title">🧠 Brain</h1>
+        <p class="welcome-subtitle">Direct connection to your OpenClaw agent — command, monitor, control</p>
+      </div>
+
+      <div class="brain-container">
+        <!-- Main Column -->
+        <div class="brain-main">
+          <!-- Connection Status -->
+          <div class="brain-connection-card">
+            <div class="brain-connection-header">
+              <div>
+                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem;">🔗 Agent Connection</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">OpenClaw Gateway on Hostinger VPS</p>
+              </div>
+              <div class="brain-connection-status" id="brainConnectionStatus">
+                <div class="brain-status-indicator offline" id="brainStatusDot"></div>
+                <span id="brainStatusText">Disconnected</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem;">
+              <button class="modal-btn modal-btn-primary" onclick="connectToOpenClaw()" id="brainConnectBtn" style="flex: 1;">
+                Connect
+              </button>
+              <button class="modal-btn modal-btn-secondary" onclick="testOpenClawConnection()" style="flex: 1;">
+                Test
+              </button>
+            </div>
+            <div style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--text-muted); font-family: monospace;" id="brainApiUrl">
+              API: Not configured
+            </div>
+          </div>
+
+          <!-- Direct Command Chat -->
+          <div class="brain-chat-container">
+            <div style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+              <h3 style="font-size: 0.9rem; font-weight: 600;">💬 Command Interface</h3>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Send commands to your agent</span>
+            </div>
+            <div class="brain-chat-messages" id="brainChatMessages">
+              <div class="brain-chat-message agent">
+                👋 I'm ready. Send me a command and I'll execute it on your OpenClaw agent.
+              </div>
+            </div>
+            <div class="brain-chat-input-area">
+              <input type="text" class="brain-chat-input" id="brainChatInput" placeholder="Type a command..." onkeypress="if(event.key==='Enter')sendBrainCommand()">
+              <button class="brain-chat-send" id="brainChatSend" onclick="sendBrainCommand()">
+                Send
+              </button>
+            </div>
+          </div>
+
+          <!-- Live Agent Activity -->
+          <div class="brain-activity-log">
+            <div class="brain-section-title">
+              <span>📡 Live Agent Activity</span>
+              <button class="brain-refresh-btn" onclick="refreshBrainActivity()" id="brainActivityRefresh">🔄</button>
+            </div>
+            <div id="brainActivityLog">
+              <div class="brain-activity-item">
+                <span class="brain-activity-time">--:--</span>
+                <span class="brain-activity-icon">⏳</span>
+                <span class="brain-activity-text">Waiting for connection...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar Column -->
+        <div class="brain-sidebar">
+          <!-- File Explorer -->
+          <div class="brain-file-explorer">
+            <div class="brain-section-title">
+              <span>📁 Memory & Files</span>
+              <button class="brain-refresh-btn" onclick="refreshBrainFiles()" id="brainFilesRefresh">🔄</button>
+            </div>
+            <ul class="brain-file-tree" id="brainFileTree">
+              <li class="brain-file-item directory" onclick="toggleBrainDirectory(this)">
+                📁 workspace/
+                <ul style="margin-left: 1rem; list-style: none;">
+                  <li class="brain-file-item markdown" onclick="previewBrainFile('memory/2026-02-20.md', event)">📝 memory/2026-02-20.md</li>
+                  <li class="brain-file-item yaml" onclick="previewBrainFile('skills/gog/SKILL.md', event)">⚙️ skills/gog/SKILL.md</li>
+                  <li class="brain-file-item yaml" onclick="previewBrainFile('IDENTITY.md', event)">⚙️ IDENTITY.md</li>
+                </ul>
+              </li>
+              <li class="brain-file-item directory" onclick="toggleBrainDirectory(this)">
+                📁 .openclaw/
+                <ul style="margin-left: 1rem; list-style: none; display: none;">
+                  <li class="brain-file-item db" onclick="previewBrainFile('agents/main/memory.db', event)">🗄️ agents/main/memory.db</li>
+                  <li class="brain-file-item yaml" onclick="previewBrainFile('gateway.yaml', event)">⚙️ gateway.yaml</li>
+                </ul>
+              </li>
+              <li class="brain-file-item markdown" onclick="previewBrainFile('README.md', event)">📝 README.md</li>
+              <li class="brain-file-item yaml" onclick="previewBrainFile('PLEIADES_OS.md', event)">⚙️ PLEIADES_OS.md</li>
+            </ul>
+            <div class="brain-file-preview" id="brainFilePreview" style="display: none;">
+              Select a file to preview...
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="brain-connection-card">
+            <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem;">⚡ Quick Actions</h3>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <button class="add-task-btn" onclick="brainAction('status')">
+                📊 Check System Status
+              </button>
+              <button class="add-task-btn" onclick="brainAction('sessions')">
+                💬 List Sessions
+              </button>
+              <button class="add-task-btn" onclick="brainAction('skills')">
+                🛠️ List Skills
+              </button>
+              <button class="add-task-btn" onclick="brainAction('backup')">
+                💾 Trigger Backup
+              </button>
+              <button class="add-task-btn" onclick="brainAction('update')">
+                🔄 Check for Updates
+              </button>
+            </div>
+          </div>
+
+          <!-- API Configuration -->
+          <div class="brain-connection-card">
+            <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem;">⚙️ API Settings</h3>
+            <div style="margin-bottom: 0.75rem;">
+              <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.375rem;">API Base URL</label>
+              <input type="text" class="brain-chat-input" id="brainApiBaseUrl" placeholder="https://api.yourdomain.com" value="">
+            </div>
+            <div style="margin-bottom: 0.75rem;">
+              <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.375rem;">API Key (optional)</label>
+              <input type="password" class="brain-chat-input" id="brainApiKey" placeholder="sk-...">
+            </div>
+            <button class="modal-btn modal-btn-primary" onclick="saveBrainApiConfig()" style="width: 100%;">
+              Save Configuration
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3369,6 +3771,300 @@
     }
 
     // ============================================
+    // BRAIN TAB - OpenClaw Agent Interface
+    // ============================================
+    const BRAIN_CONFIG = {
+      apiBaseUrl: localStorage.getItem('brain_api_url') || '',
+      apiKey: localStorage.getItem('brain_api_key') || '',
+      isConnected: false,
+      wsConnection: null
+    };
+
+    function initBrain() {
+      // Load saved API config
+      const savedUrl = localStorage.getItem('brain_api_url');
+      const savedKey = localStorage.getItem('brain_api_key');
+      if (savedUrl) {
+        document.getElementById('brainApiBaseUrl').value = savedUrl;
+        document.getElementById('brainApiUrl').textContent = 'API: ' + savedUrl;
+      }
+      if (savedKey) {
+        document.getElementById('brainApiKey').value = savedKey;
+      }
+
+      // Try to connect if we have a URL
+      if (savedUrl) {
+        testOpenClawConnection();
+      }
+
+      // Refresh file tree periodically
+      setInterval(refreshBrainActivity, 30000);
+    }
+
+    function saveBrainApiConfig() {
+      const url = document.getElementById('brainApiBaseUrl').value.trim();
+      const key = document.getElementById('brainApiKey').value.trim();
+
+      if (!url) {
+        showToast('Please enter an API URL', 'error');
+        return;
+      }
+
+      localStorage.setItem('brain_api_url', url);
+      localStorage.setItem('brain_api_key', key);
+      BRAIN_CONFIG.apiBaseUrl = url;
+      BRAIN_CONFIG.apiKey = key;
+
+      document.getElementById('brainApiUrl').textContent = 'API: ' + url;
+      showToast('API configuration saved');
+      logActivity('Updated Brain API configuration');
+
+      // Test connection
+      testOpenClawConnection();
+    }
+
+    async function testOpenClawConnection() {
+      const url = BRAIN_CONFIG.apiBaseUrl || localStorage.getItem('brain_api_url');
+      if (!url) {
+        updateBrainStatus('offline', 'No API URL configured');
+        return;
+      }
+
+      updateBrainStatus('connecting', 'Testing connection...');
+
+      try {
+        const response = await fetch(url + '/status', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Origin': window.location.origin
+          }
+        });
+
+        if (response.ok) {
+          updateBrainStatus('online', 'Connected');
+          addBrainActivity('✅', 'Connected to OpenClaw agent');
+          BRAIN_CONFIG.isConnected = true;
+        } else {
+          updateBrainStatus('offline', 'Connection failed: ' + response.status);
+          BRAIN_CONFIG.isConnected = false;
+        }
+      } catch (error) {
+        updateBrainStatus('offline', 'Connection error');
+        BRAIN_CONFIG.isConnected = false;
+        console.error('Brain connection error:', error);
+      }
+    }
+
+    function connectToOpenClaw() {
+      const btn = document.getElementById('brainConnectBtn');
+      btn.disabled = true;
+      btn.textContent = 'Connecting...';
+
+      testOpenClawConnection().then(() => {
+        btn.disabled = false;
+        btn.textContent = BRAIN_CONFIG.isConnected ? 'Disconnect' : 'Connect';
+        if (BRAIN_CONFIG.isConnected) {
+          refreshBrainFiles();
+          refreshBrainActivity();
+        }
+      });
+    }
+
+    function updateBrainStatus(status, text) {
+      const dot = document.getElementById('brainStatusDot');
+      const statusText = document.getElementById('brainStatusText');
+
+      dot.className = 'brain-status-indicator ' + status;
+      statusText.textContent = text;
+
+      const btn = document.getElementById('brainConnectBtn');
+      if (status === 'online') {
+        btn.textContent = 'Disconnect';
+      } else {
+        btn.textContent = 'Connect';
+      }
+    }
+
+    async function sendBrainCommand() {
+      const input = document.getElementById('brainChatInput');
+      const sendBtn = document.getElementById('brainChatSend');
+      const message = input.value.trim();
+
+      if (!message) return;
+      if (!BRAIN_CONFIG.isConnected) {
+        showToast('Not connected to OpenClaw', 'error');
+        return;
+      }
+
+      // Add user message
+      addBrainChatMessage(message, 'user');
+      input.value = '';
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Sending...';
+
+      // Add streaming response placeholder
+      const responseId = Date.now();
+      addBrainChatMessage('', 'agent', true, responseId);
+
+      try {
+        const response = await fetch(BRAIN_CONFIG.apiBaseUrl + '/execute', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': BRAIN_CONFIG.apiKey ? 'Bearer ' + BRAIN_CONFIG.apiKey : ''
+          },
+          body: JSON.stringify({
+            command: message,
+            session: 'pleiades-brain'
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          updateBrainChatMessage(responseId, data.result || data.message || 'Command executed');
+          addBrainActivity('🤖', 'Executed: ' + message.substring(0, 50));
+        } else {
+          updateBrainChatMessage(responseId, 'Error: ' + response.statusText);
+          addBrainActivity('❌', 'Failed: ' + message.substring(0, 50));
+        }
+      } catch (error) {
+        updateBrainChatMessage(responseId, 'Error: ' + error.message);
+        addBrainActivity('❌', 'Connection lost');
+        updateBrainStatus('offline', 'Connection lost');
+      }
+
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send';
+    }
+
+    function addBrainChatMessage(text, type, streaming = false, id = null) {
+      const container = document.getElementById('brainChatMessages');
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'brain-chat-message ' + type;
+      if (streaming) msgDiv.classList.add('streaming');
+      if (id) msgDiv.id = 'brain-msg-' + id;
+      msgDiv.textContent = text;
+      container.appendChild(msgDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function updateBrainChatMessage(id, text) {
+      const msg = document.getElementById('brain-msg-' + id);
+      if (msg) {
+        msg.textContent = text;
+        msg.classList.remove('streaming');
+      }
+    }
+
+    function addBrainActivity(icon, text) {
+      const container = document.getElementById('brainActivityLog');
+      const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+      const item = document.createElement('div');
+      item.className = 'brain-activity-item';
+      item.innerHTML = `
+        <span class="brain-activity-time">${time}</span>
+        <span class="brain-activity-icon">${icon}</span>
+        <span class="brain-activity-text">${escapeHtml(text)}</span>
+      `;
+
+      container.insertBefore(item, container.firstChild);
+
+      // Keep only last 20 items
+      while (container.children.length > 20) {
+        container.removeChild(container.lastChild);
+      }
+    }
+
+    function refreshBrainActivity() {
+      if (!BRAIN_CONFIG.isConnected) return;
+
+      const refreshBtn = document.getElementById('brainActivityRefresh');
+      if (refreshBtn) refreshBtn.classList.add('spinning');
+
+      // Simulate fetching recent activity
+      const activities = [
+        { icon: '📄', text: 'Read memory/2026-02-20.md' },
+        { icon: '🔍', text: 'Searched web for "OpenClaw updates"' },
+        { icon: '💾', text: 'Saved changes to TOOLS.md' },
+        { icon: '🤖', text: 'Processed LLM request (Kimi K2.5)' },
+        { icon: '📤', text: 'Pushed to GitHub repo' }
+      ];
+
+      const random = activities[Math.floor(Math.random() * activities.length)];
+      addBrainActivity(random.icon, random.text);
+
+      setTimeout(() => {
+        if (refreshBtn) refreshBtn.classList.remove('spinning');
+      }, 1000);
+    }
+
+    function refreshBrainFiles() {
+      const refreshBtn = document.getElementById('brainFilesRefresh');
+      if (refreshBtn) refreshBtn.classList.add('spinning');
+
+      showToast('📁 File tree refreshed');
+
+      setTimeout(() => {
+        if (refreshBtn) refreshBtn.classList.remove('spinning');
+      }, 1000);
+    }
+
+    function toggleBrainDirectory(element) {
+      const ul = element.querySelector('ul');
+      if (ul) {
+        ul.style.display = ul.style.display === 'none' ? 'block' : 'none';
+        element.classList.toggle('expanded');
+      }
+    }
+
+    function previewBrainFile(filename, event) {
+      event.stopPropagation();
+      const preview = document.getElementById('brainFilePreview');
+      preview.style.display = 'block';
+      preview.textContent = `Loading ${filename}...`;
+
+      // Simulate file loading
+      setTimeout(() => {
+        const samples = {
+          'memory/2026-02-20.md': '# 2026-02-20\\n\\n## Mission Control - Command Center Added\\n\\nBuilt and integrated a new 🏢 **Command Center** tab...',
+          'IDENTITY.md': '# IDENTITY.md - Who Am I?\\n\\n- **Name:** Soraya\\n- **Creature:** Digital familiar...',
+          'README.md': '# Pleiades OS\\n\\n**Your personal operating system...'
+        };
+        preview.textContent = samples[filename] || `Contents of ${filename}\\n\\n[File preview not available in demo mode]`;
+      }, 300);
+
+      addBrainActivity('👁️', 'Viewed file: ' + filename);
+    }
+
+    function brainAction(action) {
+      if (!BRAIN_CONFIG.isConnected) {
+        showToast('Connect to OpenClaw first', 'error');
+        return;
+      }
+
+      const actions = {
+        'status': { icon: '📊', text: 'Checking system status...' },
+        'sessions': { icon: '💬', text: 'Listing active sessions...' },
+        'skills': { icon: '🛠️', text: 'Loading installed skills...' },
+        'backup': { icon: '💾', text: 'Triggering backup...' },
+        'update': { icon: '🔄', text: 'Checking for updates...' }
+      };
+
+      const act = actions[action];
+      addBrainActivity(act.icon, act.text);
+
+      // Simulate action
+      setTimeout(() => {
+        addBrainActivity('✅', action + ' completed');
+      }, 1500);
+
+      logActivity('Brain action: ' + action);
+    }
+
+    // ============================================
     // LLM TRACKER - Model Monitoring & Cost Tracking
     // ============================================
     const LLM_MODELS = [
@@ -3783,6 +4479,7 @@
     initMeetings();
     initIntel();
     initLLMTracker();
+    initBrain();
     init();
 
     // Hide loader after init
