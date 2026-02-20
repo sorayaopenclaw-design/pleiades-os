@@ -1,0 +1,8 @@
+{
+  "name": "pleiades-os",
+  "version": "1.0.0",
+  "description": "Your personal operating system — many stars, each distinct, together something more",
+  "scripts": {
+    "deploy": "vercel --prod"
+  }
+}
