@@ -415,6 +415,8 @@
       <div class="logo" aria-label="Pleiades OS Logo"><div class="logo-icon" aria-hidden="true">✦</div><span>Pleiades OS</span></div>
       <nav class="nav-tabs" id="navTabs" role="tablist" aria-label="Pleiades OS Navigation"></nav>
       <div class="header-right">
+        <button class="btn-icon" onclick="exportAllData()" title="Export">💾</button>
+        <button class="btn-icon" onclick="importData()" title="Import">📥</button>
         <div class="search-wrap">
           <span class="search-icon" aria-hidden="true">🔍</span>
           <input type="text" class="search-input" placeholder="Search... (⌘K)" id="globalSearch" autocomplete="off" aria-label="Search">
@@ -2166,6 +2168,60 @@ if ('IntersectionObserver' in window) {
   }, { rootMargin: '50px' });
   
   lazyElements.forEach(el => lazyObserver.observe(el));
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  // ⌘/Ctrl + K = Focus search
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    document.getElementById('globalSearch')?.focus();
+  }
+
+  // ⌘/Ctrl + N = Add new (context-aware based on active tab)
+  if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+    e.preventDefault();
+    // Call appropriate add function based on activeTab
+    if (activeTab === 'dashboard') addPriority();
+    else if (activeTab === 'projects') addTask('backlog');
+    else if (activeTab === 'meetings') addMeeting();
+    else if (activeTab === 'intel') addIntel();
+    else if (activeTab === 'command') quickAddNotion('actions');
+    else if (activeTab === 'timeline') addTimelinePhase();
+  }
+
+  // 1-9 = Switch to tab 1-9
+  if (!e.metaKey && !e.ctrlKey && /^[1-9]$/.test(e.key)) {
+    const tabIndex = parseInt(e.key) - 1;
+    if (TABS[tabIndex]) switchTab(TABS[tabIndex].id);
+  }
+
+  // ? = Show help
+  if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
+    showKeyboardHelp();
+  }
+
+  // Escape = Close modal or unfocus search
+  if (e.key === 'Escape') {
+    if (document.getElementById('universalModal').classList.contains('open')) {
+      closeModal();
+    } else if (document.getElementById('globalSearch') === document.activeElement) {
+      document.getElementById('globalSearch').blur();
+    }
+  }
+});
+
+function showKeyboardHelp() {
+  openModal(`
+    <div class="modal-header"><h3 class="modal-title">⌨️ Keyboard Shortcuts</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+    <div style="padding:1rem">
+      <div style="margin-bottom:.5rem"><kbd style="background:rgba(255,255,255,.1);padding:.25rem .5rem;border-radius:4px">⌘K</kbd> Focus search</div>
+      <div style="margin-bottom:.5rem"><kbd style="background:rgba(255,255,255,.1);padding:.25rem .5rem;border-radius:4px">⌘N</kbd> Add new item</div>
+      <div style="margin-bottom:.5rem"><kbd style="background:rgba(255,255,255,.1);padding:.25rem .5rem;border-radius:4px">1-9</kbd> Switch tabs</div>
+      <div style="margin-bottom:.5rem"><kbd style="background:rgba(255,255,255,.1);padding:.25rem .5rem;border-radius:4px">?</kbd> Show this help</div>
+      <div><kbd style="background:rgba(255,255,255,.1);padding:.25rem .5rem;border-radius:4px">Esc</kbd> Close modal/unfocus</div>
+    </div>
+  `);
 }
 </script>
 </body>
