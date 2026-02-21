@@ -647,6 +647,77 @@ function futureDate(d) { const dt=new Date(); dt.setDate(dt.getDate()+d); return
 function futureTime(h) { const dt=new Date(); dt.setHours(dt.getHours()+h); return dt.toTimeString().slice(0,5) }
 
 // ============================================
+// DATA EXPORT/IMPORT
+// ============================================
+function exportAllData() {
+  const data = {
+    tasks: S.get('tasks', []),
+    priorities: S.get('priorities', []),
+    meetings: S.get('meetings', []),
+    intel: S.get('intel', []),
+    agents: S.get('agents', []),
+    decisions: S.get('decisions', []),
+    timeline: S.get('timeline', []),
+    notes: S.get('notes', ''),
+    llm_data: S.get('llm_data', {}),
+    exported_at: new Date().toISOString(),
+    version: '1.0'
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pleiades-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Data exported successfully');
+  logAct('💾','system','Data exported');
+}
+
+function importData() {
+  openModal(`
+    <div class="modal-header"><h3 class="modal-title">📥 Import Data</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+    <p style="color:var(--text-secondary);margin-bottom:1rem">Warning: This will overwrite current data. Make sure you have a backup.</p>
+    <input type="file" id="importFile" accept=".json" class="modal-input" style="margin-bottom:1rem">
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-btn-primary" onclick="processImport()">Import</button>
+    </div>
+  `);
+}
+
+function processImport() {
+  const file = document.getElementById('importFile').files[0];
+  if (!file) return toast('Select a file','error');
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      // Validate data structure
+      if (data.tasks) S.set('tasks', data.tasks);
+      if (data.priorities) S.set('priorities', data.priorities);
+      if (data.meetings) S.set('meetings', data.meetings);
+      if (data.intel) S.set('intel', data.intel);
+      if (data.agents) S.set('agents', data.agents);
+      if (data.decisions) S.set('decisions', data.decisions);
+      if (data.timeline) S.set('timeline', data.timeline);
+      if (data.notes) S.set('notes', data.notes);
+      if (data.llm_data) S.set('llm_data', data.llm_data);
+
+      closeModal();
+      toast('Data imported successfully');
+      logAct('📥','system','Data imported');
+      renderActiveTab();
+    } catch (err) {
+      toast('Invalid file format','error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ============================================
 // MODAL SYSTEM
 // ============================================
 function openModal(html) {
