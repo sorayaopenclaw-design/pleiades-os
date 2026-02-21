@@ -413,14 +413,14 @@
   <header class="header" role="banner">
     <div class="header-content">
       <div class="logo" aria-label="Pleiades OS Logo"><div class="logo-icon" aria-hidden="true">✦</div><span>Pleiades OS</span></div>
-      <nav class="nav-tabs" id="navTabs" role="tablist" aria-label="Main Navigation"></nav>
+      <nav class="nav-tabs" id="navTabs" role="tablist" aria-label="Pleiades OS Navigation"></nav>
       <div class="header-right">
         <div class="search-wrap">
           <span class="search-icon" aria-hidden="true">🔍</span>
-          <input type="text" class="search-input" placeholder="Search... (⌘K)" id="globalSearch" autocomplete="off" aria-label="Search" role="searchbox">
+          <input type="text" class="search-input" placeholder="Search... (⌘K)" id="globalSearch" autocomplete="off" aria-label="Search">
           <div class="search-results" id="searchResults"></div>
         </div>
-        <div class="status-indicator offline" id="serverStatus" role="status" aria-live="polite" aria-label="Server status">
+        <div class="status-indicator offline" id="serverStatus" role="status" aria-live="polite" aria-label="Connection status">
           <div class="status-dot" aria-hidden="true"></div>
           <span id="serverStatusText">Local</span>
         </div>
@@ -516,7 +516,7 @@ function toast(msg, type='success') {
 function initNav() {
   const nav = document.getElementById('navTabs');
   nav.innerHTML = TABS.map(t =>
-    `<button class="nav-tab ${t.id===activeTab?'active':''}" data-tab="${t.id}">${t.icon} ${t.label}</button>`
+    `<button class="nav-tab ${t.id===activeTab?'active':''}" data-tab="${t.id}" role="tab" aria-controls="tab-${t.id}" aria-selected="${t.id===activeTab?'true':'false'}">${t.icon} ${t.label}</button>`
   ).join('');
   nav.querySelectorAll('.nav-tab').forEach(btn => {
     btn.onclick = () => switchTab(btn.dataset.tab);
@@ -526,7 +526,11 @@ function initNav() {
 function switchTab(id) {
   activeTab = id;
   S.set('activeTab', id);
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab===id));
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    const isActive = t.dataset.tab === id;
+    t.classList.toggle('active', isActive);
+    t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
   renderActiveTab();
 }
 
