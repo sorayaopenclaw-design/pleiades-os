@@ -6,6 +6,25 @@
   <meta name="theme-color" content="#050508">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Pleiades OS - Personal command center for task management, meetings, and productivity">
+  <meta name="application-name" content="Pleiades OS">
+  
+  <!-- PWA: Resource Hints for Performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+  <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+  
+  <!-- PWA: Manifest and Icons -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/icon-152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="/icon-167.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/icon-16.png">
+  <link rel="mask-icon" href="/icon-mask.svg" color="#8b5cf6">
+  
   <title>Pleiades OS ✦ TJ</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -17,14 +36,18 @@
       --accent-hover: #7c3aed;
       --text-primary: #fff;
       --text-secondary: rgba(255,255,255,0.7);
-      --text-muted: rgba(255,255,255,0.5);
+      --text-muted: rgba(255,255,255,0.7);
       --success: #10b981;
       --danger: #ef4444;
       --warning: #f59e0b;
       --info: #3b82f6;
+      --focus-ring: 0 0 0 3px rgba(139,92,246,0.6);
     }
     *{margin:0;padding:0;box-sizing:border-box}
+    .skip-link{position:absolute;top:-40px;left:0;background:var(--accent);color:#fff;padding:8px 16px;z-index:10000;transition:top .3s;text-decoration:none;font-weight:500;border-radius:0 0 4px 0}
+    .skip-link:focus{top:0;outline:none;box-shadow:0 0 0 3px rgba(139,92,246,0.5)}
     body{font-family:'Inter',sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh;line-height:1.6}
+    *:focus-visible{outline:none;box-shadow:var(--focus-ring)}
     body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 20%,rgba(139,92,246,.08) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(236,72,153,.05) 0%,transparent 50%),radial-gradient(ellipse at 50% 50%,rgba(99,102,241,.03) 0%,transparent 70%);pointer-events:none;z-index:-1}
     .stars{position:fixed;inset:0;pointer-events:none;z-index:-2;background-image:radial-gradient(2px 2px at 20px 30px,rgba(255,255,255,.15),transparent),radial-gradient(2px 2px at 40px 70px,rgba(255,255,255,.1),transparent),radial-gradient(1px 1px at 90px 40px,rgba(255,255,255,.12),transparent),radial-gradient(2px 2px at 130px 80px,rgba(255,255,255,.08),transparent),radial-gradient(1px 1px at 160px 20px,rgba(255,255,255,.1),transparent),radial-gradient(2px 2px at 200px 50px,rgba(255,255,255,.06),transparent),radial-gradient(1px 1px at 250px 90px,rgba(255,255,255,.08),transparent),radial-gradient(2px 2px at 300px 30px,rgba(255,255,255,.1),transparent),radial-gradient(1px 1px at 350px 70px,rgba(255,255,255,.05),transparent),radial-gradient(2px 2px at 400px 60px,rgba(255,255,255,.08),transparent),radial-gradient(1px 1px at 500px 20px,rgba(255,255,255,.1),transparent),radial-gradient(2px 2px at 600px 40px,rgba(255,255,255,.06),transparent),radial-gradient(1px 1px at 700px 90px,rgba(255,255,255,.05),transparent),radial-gradient(2px 2px at 800px 55px,rgba(255,255,255,.06),transparent),radial-gradient(1px 1px at 900px 35px,rgba(255,255,255,.08),transparent);background-size:1000px 150px;animation:twinkle 8s ease-in-out infinite}
     @keyframes twinkle{0%,100%{opacity:.8}50%{opacity:.4}}
@@ -342,7 +365,12 @@
   </style>
 </head>
 <body>
-  <div class="stars"></div>
+  <!-- Skip Link for Accessibility -->
+  <a href="#mainContent" class="skip-link" aria-label="Skip to main content">Skip to main content</a>
+  
+  <!-- Screen Reader Announcer -->
+  <div id="sr-announcer" role="status" aria-live="polite" aria-atomic="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden;"></div>
+  <div class="stars" role="presentation" aria-hidden="true"></div>
 
   <!-- Loader -->
   <div id="loader" style="position:fixed;inset:0;background:var(--bg-primary);display:flex;align-items:center;justify-content:center;z-index:10000;transition:opacity .5s">
@@ -353,39 +381,39 @@
     </div>
   </div>
 
-  <header class="header">
+  <header class="header" role="banner">
     <div class="header-content">
-      <div class="logo"><div class="logo-icon">✦</div><span>Pleiades OS</span></div>
-      <nav class="nav-tabs" id="navTabs"></nav>
+      <div class="logo" aria-label="Pleiades OS Logo"><div class="logo-icon" aria-hidden="true">✦</div><span>Pleiades OS</span></div>
+      <nav class="nav-tabs" id="navTabs" role="tablist" aria-label="Main Navigation"></nav>
       <div class="header-right">
         <div class="search-wrap">
-          <span class="search-icon">🔍</span>
-          <input type="text" class="search-input" placeholder="Search... (⌘K)" id="globalSearch" autocomplete="off">
+          <span class="search-icon" aria-hidden="true">🔍</span>
+          <input type="text" class="search-input" placeholder="Search... (⌘K)" id="globalSearch" autocomplete="off" aria-label="Search" role="searchbox">
           <div class="search-results" id="searchResults"></div>
         </div>
-        <div class="status-indicator offline" id="serverStatus">
-          <div class="status-dot"></div>
+        <div class="status-indicator offline" id="serverStatus" role="status" aria-live="polite" aria-label="Server status">
+          <div class="status-dot" aria-hidden="true"></div>
           <span id="serverStatusText">Local</span>
         </div>
       </div>
     </div>
   </header>
 
-  <main class="main-content" id="mainContent"></main>
+  <main class="main-content" id="mainContent" role="main"></main>
 
   <!-- Slide Panel -->
   <div class="slide-panel-overlay" id="slideOverlay"></div>
   <div class="slide-panel" id="slidePanel">
     <div style="padding:1.25rem;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between">
       <h2 id="slidePanelTitle" style="font-size:1.1rem">Details</h2>
-      <button class="modal-close" onclick="closeSlidePanel()">×</button>
+      <button class="modal-close" onclick="closeSlidePanel()" aria-label="Close panel">×</button>
     </div>
     <div id="slidePanelContent" style="padding:1.25rem"></div>
   </div>
 
   <!-- Universal Modal -->
-  <div class="modal-overlay" id="universalModal">
-    <div class="modal" id="universalModalContent"></div>
+  <div class="modal-overlay" id="universalModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal" id="universalModalContent" role="document"></div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -399,10 +427,30 @@ const S = {
   set(k, v) { try { localStorage.setItem('po_'+k, JSON.stringify(v)); return true } catch(e) { return false } }
 };
 
+// ============================================
+// NOTION DATABASE CONFIGURATION
+// ============================================
+const NOTION_DATABASES = {
+  jobs: { id: '308e0ed4-78b6-816d-8daf-c8e358b02627', name: 'Job Applications', icon: '💼', color: 'jobs' },
+  immigration: { id: '308e0ed4-78b6-8121-bee6-ea1a892fee43', name: 'Immigration Documents', icon: '🛂', color: 'immigration' },
+  projects: { id: '308e0ed4-78b6-81f0-abc6-e7f377ac957b', name: 'Projects & Tasks', icon: '📁', color: 'projects' },
+  content: { id: '308e0ed4-78b6-81f3-b548-c3170ab388f9', name: 'Content Ideas', icon: '✍️', color: 'content' },
+  grants: { id: '30ae0ed4-78b6-81d0-81c7-d884c1215e8a', name: 'Grant Pipeline', icon: '💰', color: 'grants' },
+  policy: { id: '30ae0ed4-78b6-813e-8add-dbf78974b2ee', name: 'Policy Development', icon: '📜', color: 'policy' },
+  actions: { id: '30ae0ed4-78b6-813e-9dbd-e7c914afaff4', name: 'Action Items', icon: '⚡', color: 'actions' }
+};
+
+// API endpoint - change this to your deployed Vercel URL
+const NOTION_API_ENDPOINT = '/api/notion';
+const NOTION_ADD_ENDPOINT = '/api/notion-add';
+
+let notionSyncStatus = { syncing: false, lastSync: null, error: null };
+let notionCache = S.get('notionCache', null);
+
 const TABS = [
   { id:'dashboard', icon:'✨', label:'Today' },
   { id:'projects', icon:'🎯', label:'Path' },
-  { id:'command', icon:'🌟', label:'Collective' },
+  { id:'command', icon:'🌟', label:'Command' },
   { id:'meetings', icon:'📞', label:'Rituals' },
   { id:'intel', icon:'📡', label:'Signals' },
   { id:'llm', icon:'🤖', label:'LLM' },
@@ -612,7 +660,7 @@ function renderDashboard(el) {
       <p class="welcome-subtitle">${dateStr}</p>
       <p style="color:var(--text-muted);font-size:.85rem;margin-top:.375rem;font-style:italic">"Many stars, each distinct, together something more"</p>
     </div>
-    <div class="metrics-grid">
+    <div class="metrics-grid" role="region" aria-label="Key Metrics">
       <div class="card metric-card">
         <div class="metric-label">Path Progress</div>
         <div class="metric-value">${pct}%</div>
@@ -634,20 +682,20 @@ function renderDashboard(el) {
         <div class="metric-sub">Target: ${new Date(goalDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} ✏️</div>
       </div>
     </div>
-    <div class="dash-grid">
-      <div class="card">
+    <div class="dash-grid" role="region" aria-label="Dashboard Content">
+      <div class="card" role="region" aria-label="Priorities">
         <div class="card-header">
           <span class="card-title">🎯 Priorities</span>
-          <button class="btn btn-sm btn-primary" onclick="addPriority()">+ Add</button>
+          <button class="btn btn-sm btn-primary" onclick="addPriority()" aria-label="Add priority">+ Add</button>
         </div>
-        <div id="priorityList"></div>
+        <div id="priorityList" role="list"></div>
       </div>
-      <div class="card">
+      <div class="card" role="region" aria-label="Activity Feed">
         <div class="card-header">
           <span class="card-title">📡 Activity Feed</span>
           <span style="font-size:.75rem;color:var(--text-muted)">${activityFeed.length} events</span>
         </div>
-        <div id="activityFeedList" style="max-height:360px;overflow-y:auto"></div>
+        <div id="activityFeedList" style="max-height:360px;overflow-y:auto" role="list"></div>
       </div>
     </div>
   `;
@@ -692,7 +740,7 @@ function deletePriority(id) {
 }
 function addPriority() {
   openModal(`
-    <div class="modal-header"><h3 class="modal-title">Add Priority</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="modal-header"><h3 class="modal-title" id="modalTitle">Add Priority</h3><button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button></div>
     <input class="modal-input" id="prioText" placeholder="What needs attention?" autofocus>
     <label class="modal-label">Urgency</label>
     <select class="modal-input modal-select" id="prioTag">
@@ -718,7 +766,7 @@ function savePriority() {
 function editGoalDate() {
   const current = S.get('goalDate','2026-12-31');
   openModal(`
-    <div class="modal-header"><h3 class="modal-title">Set Goal Date</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="modal-header"><h3 class="modal-title" id="modalTitle">Set Goal Date</h3><button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button></div>
     <label class="modal-label">When is "home"?</label>
     <input type="date" class="modal-input" id="goalDateInput" value="${current}">
     <div class="modal-actions">
@@ -788,7 +836,7 @@ function deleteTask(id) {
 }
 function addTask(status) {
   openModal(`
-    <div class="modal-header"><h3 class="modal-title">New Task</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="modal-header"><h3 class="modal-title" id="modalTitle">New Task</h3><button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button></div>
     <input class="modal-input" id="taskTitle" placeholder="Task title" autofocus>
     <textarea class="modal-input textarea" id="taskDesc" placeholder="Description (optional)"></textarea>
     <label class="modal-label">Priority</label>
@@ -841,38 +889,209 @@ function saveTask() {
 // ============================================
 // COMMAND CENTER
 // ============================================
+// ============================================
+// COMMAND CENTER - Notion Integration
+// ============================================
 function renderCommand(el) {
-  const agents = getAgents();
-  const decisions = getDecisions();
+  const data = notionCache?.data || {};
+  const lastSync = notionCache?.timestamp;
+  
+  // Calculate stats for each database
+  const stats = {
+    jobs: {
+      total: data.jobs?.length || 0,
+      active: data.jobs?.filter(j => j.status === 'Applied' || j.properties?.Status === 'Applied').length || 0,
+      interviewing: data.jobs?.filter(j => j.status === 'Interviewing' || j.properties?.Status === 'Interviewing').length || 0
+    },
+    immigration: {
+      total: data.immigration?.length || 0,
+      expiring: data.immigration?.filter(d => d.status === 'Needs Renewal' || d.properties?.Status === 'Needs Renewal').length || 0,
+      submitted: data.immigration?.filter(d => d.status === 'Submitted' || d.properties?.Status === 'Submitted').length || 0
+    },
+    projects: {
+      total: data.projects?.length || 0,
+      inProgress: data.projects?.filter(p => p.status === 'In Progress' || p.properties?.Status === 'In Progress').length || 0,
+      backlog: data.projects?.filter(p => p.status === 'Backlog' || p.properties?.Status === 'Backlog').length || 0
+    },
+    content: {
+      total: data.content?.length || 0,
+      drafting: data.content?.filter(c => c.status === 'Drafting' || c.properties?.Status === 'Drafting').length || 0,
+      published: data.content?.filter(c => c.status === 'Published' || c.properties?.Status === 'Published').length || 0
+    },
+    grants: {
+      total: data.grants?.length || 0,
+      applied: data.grants?.filter(g => g.status === 'Applied' || g.properties?.Status === 'Applied').length || 0,
+      awarded: data.grants?.filter(g => g.status === 'Awarded' || g.properties?.Status === 'Awarded').length || 0
+    },
+    policy: {
+      total: data.policy?.length || 0,
+      drafting: data.policy?.filter(p => p.status === 'Drafting' || p.properties?.Status === 'Drafting').length || 0
+    },
+    actions: {
+      total: data.actions?.length || 0,
+      urgent: data.actions?.filter(a => a.priority === 'Urgent' || a.properties?.Priority === 'Urgent').length || 0,
+      today: data.actions?.filter(a => {
+        const date = a.due || a.properties?.Due || a.properties?.Date;
+        return date && date.startsWith(new Date().toISOString().split('T')[0]);
+      }).length || 0
+    }
+  };
 
   el.innerHTML = `
-    <div class="welcome-bar"><h1 class="welcome-title">🌟 The Collective</h1><p class="welcome-subtitle">Your constellation of agents</p></div>
-    <div class="agents-grid">${agents.map(a => `
-      <div class="card agent-card" onclick="openAgentPanel('${a.id}')">
-        <div class="agent-header">
-          <div class="agent-avatar">${a.avatar}</div>
-          <div>
-            <div class="agent-name">${esc(a.name)}</div>
-            <div class="agent-role">${esc(a.role)}</div>
-            <div class="agent-status ${a.status}"><div class="agent-status-dot"></div><span>${a.status}</span></div>
-          </div>
-        </div>
-        <div class="agent-meta">
-          <span>🤖 <span class="agent-model">${esc(a.model)}</span></span>
-          <span>🕐 ${timeAgo(a.lastActive)}</span>
+    <div class="welcome-bar">
+      <h1 class="welcome-title">🌟 Command Center</h1>
+      <p class="welcome-subtitle">Notion workspace sync • 7 databases connected</p>
+    </div>
+    
+    <div style="margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+      <button class="btn btn-primary ${notionSyncStatus.syncing ? 'disabled' : ''}" onclick="syncNotionData()" id="syncBtn" ${notionSyncStatus.syncing ? 'disabled' : ''}>
+        <span id="syncIcon">${notionSyncStatus.syncing ? '⏳' : '🔄'}</span>
+        ${notionSyncStatus.syncing ? 'Syncing...' : 'Sync with Notion'}
+      </button>
+      <span id="lastSync" style="color:var(--text-muted);font-size:.85rem">
+        ${lastSync ? `Last synced: ${timeAgo(lastSync)}` : 'Not synced yet'}
+      </span>
+      ${notionSyncStatus.error ? `<span style="color:var(--danger);font-size:.85rem">⚠️ ${esc(notionSyncStatus.error)}</span>` : ''}
+    </div>
+    
+    <div class="command-grid" role="region" aria-label="Notion Databases">
+      <!-- Job Applications -->
+      <div class="card command-card jobs" role="article" tabindex="0" onclick="showNotionDetails('jobs')">
+        <button class="notion-sync-btn" onclick="event.stopPropagation();quickAddNotion('jobs')" title="Quick add job application" aria-label="Quick add job">+</button>
+        <div class="command-count">${stats.jobs.total}</div>
+        <div class="command-label">💼 Job Applications</div>
+        <div class="command-meta">${stats.jobs.active} active • ${stats.jobs.interviewing} interviewing</div>
+        <div style="margin-top:.75rem">
+          ${(data.jobs || []).slice(0, 3).map(j => `
+            <div class="notion-item">
+              <span class="notion-status ${getStatusClass(j.status || j.properties?.Status)}"></span>
+              <span>${esc(j.name || j.properties?.Name || j.properties?.Company || 'Untitled')}</span>
+            </div>
+          `).join('') || '<div style="color:var(--text-muted);font-size:.8rem;padding:.5rem 0">No jobs synced yet</div>'}
         </div>
       </div>
-    `).join('')}</div>
-    <div style="margin-top:2rem">
-      <div class="card-header"><span class="card-title">📋 Executive Decisions</span><button class="btn btn-sm btn-primary" onclick="addDecision()">+ Log Decision</button></div>
-      <div id="decisionsList">${decisions.map(d => `
-        <div class="card decision-card">
-          <div class="decision-date">${new Date(d.date).toLocaleDateString()}</div>
-          <div class="decision-question">${esc(d.question)}</div>
-          <div class="decision-summary">${esc(d.summary)}</div>
-          <div class="decision-agents">${d.agents.map(a=>`<span class="decision-agent-tag">${esc(a)}</span>`).join('')}</div>
+      
+      <!-- Immigration Documents -->
+      <div class="card command-card immigration" role="article" tabindex="0" onclick="showNotionDetails('immigration')">
+        <button class="notion-sync-btn" onclick="event.stopPropagation();quickAddNotion('immigration')" title="Quick add document" aria-label="Quick add document">+</button>
+        <div class="command-count">${stats.immigration.total}</div>
+        <div class="command-label">🛂 Immigration Documents</div>
+        <div class="command-meta">${stats.immigration.expiring} expiring • ${stats.immigration.submitted} submitted</div>
+        <div style="margin-top:.75rem">
+          ${(data.immigration || []).slice(0, 3).map(d => `
+            <div class="notion-item">
+              <span class="notion-status ${getStatusClass(d.status || d.properties?.Status)}"></span>
+              <span>${esc(d.name || d.properties?.Name || d.properties?.Document || 'Untitled')}</span>
+            </div>
+          `).join('') || '<div style="color:var(--text-muted);font-size:.8rem;padding:.5rem 0">No documents synced yet</div>'}
         </div>
-      `).join('')}</div>
+      </div>
+      
+      <!-- Projects & Tasks -->
+      <div class="card command-card projects" role="article" tabindex="0" onclick="showNotionDetails('projects')">
+        <button class="notion-sync-btn" onclick="event.stopPropagation();quickAddNotion('projects')" title="Quick add project" aria-label="Quick add project">+</button>
+        <div class="command-count">${stats.projects.total}</div>
+        <div class="command-label">📁 Projects & Tasks</div>
+        <div class="command-meta">${stats.projects.inProgress} in progress • ${stats.projects.backlog} backlog</div>
+        <div style="margin-top:.75rem">
+          ${(data.projects || []).slice(0, 3).map(p => `
+            <div class="notion-item">
+              <span class="notion-status ${getStatusClass(p.status || p.properties?.Status)}"></span>
+              <span>${esc(p.name || p.properties?.Name || p.properties?.Task || 'Untitled')}</span>
+            </div>
+          `).join('') || '<div style="color:var(--text-muted);font-size:.8rem;padding:.5rem 0">No projects synced yet</div>'}
+        </div>
+      </div>
+      
+      <!-- Content Ideas -->
+      <div class="card command-card content" role="article" tabindex="0" onclick="showNotionDetails('content')">
+        <button class="notion-sync-btn" onclick="event.stopPropagation();quickAddNotion('content')" title="Quick add content idea" aria-label="Quick add content">+</button>
+        <div class="command-count">${stats.content.total}</div>
+        <div class="command-label">✍️ Content Ideas</div>
+        <div class="command-meta">${stats.content.drafting} drafting • ${stats.content.published} published</div>
+        <div style="margin-top:.75rem">
+          ${(data.content || []).slice(0, 3).map(c => `
+            <div class="notion-item">
+              <span class="notion-status ${getStatusClass(c.status || c.properties?.Status)}"></span>
+              <span>${esc(c.name || c.properties?.Name || c.properties?.Title || 'Untitled')}</span>
+            </div>
+          `).join('') || '<div style="color:var(--text-muted);font-size:.8rem;padding:.5rem 0">No content synced yet</div>'}
+        </div>
+      </div>
+      
+      <!-- Grant Pipeline -->
+      <div class="card command-card grants" role="article" tabindex="0" onclick="showNotionDetails('grants')">
+        <button class="notion-sync-btn" onclick="event.stopPropagation();quickAddNotion('grants')" title="Quick add grant" aria-label="Quick add grant">+</button>
+        <div class="command-count">${stats.grants.total}</div>
+        <div class="command-label">💰 Grant Pipeline</div>
+        <div class="command-meta">${stats.grants.applied} pending • ${stats.grants.awarded} awarded</div>
+        <div style="margin-top:.75rem">
+          ${(data.grants || []).slice(0, 3).map(g => `
+            <div class="notion-item">
+              <span class="notion-status ${getStatusClass(g.status || g.properties?.Status)}"></span>
+              <span>${esc(g.name || g.properties?.Name || g.properties?.Funder || 'Untitled')}</span>
+            </div>
+          `).join('') || '<div style="color:var(--text-muted);font-size:.8rem;padding:.5rem 0">No grants synced yet</div>'}
+        </div>
+      </div>
+      
+      <!-- Policy Development -->
+      <div class="card command-card policy" role="article" tabindex="0" onclick="showNotionDetails('policy')">
+        <button class="notion-sync-btn" onclick="event.stopPropagation();quickAddNotion('policy')" title="Quick add policy" aria-label="Quick add policy">+</button>
+        <div class="command-count">${stats.policy.total}</div>
+        <div class="command-label">📜 Policy Development</div>
+        <div class="command-meta">${stats.policy.drafting} in drafting</div>
+        <div style="margin-top:.75rem">
+          ${(data.policy || []).slice(0, 3).map(p => `
+            <div class="notion-item">
+              <span class="notion-status ${getStatusClass(p.status || p.properties?.Status)}"></span>
+              <span>${esc(p.name || p.properties?.Name || p.properties?.Policy || 'Untitled')}</span>
+            </div>
+          `).join('') || '<div style="color:var(--text-muted);font-size:.8rem;padding:.5rem 0">No policies synced yet</div>'}
+        </div>
+      </div>
+      
+      <!-- Action Items -->
+      <div class="card command-card actions" role="article" tabindex="0" onclick="showNotionDetails('actions')">
+        <button class="notion-sync-btn" onclick="event.stopPropagation();quickAddNotion('actions')" title="Quick add action" aria-label="Quick add action">+</button>
+        <div class="command-count">${stats.actions.total}</div>
+        <div class="command-label">⚡ Action Items</div>
+        <div class="command-meta">${stats.actions.urgent} urgent • ${stats.actions.today} due today</div>
+        <div style="margin-top:.75rem">
+          ${(data.actions || []).slice(0, 3).map(a => `
+            <div class="notion-item">
+              <span class="notion-status ${getPriorityClass(a.priority || a.properties?.Priority)}"></span>
+              <span>${esc(a.name || a.properties?.Name || a.properties?.Action || 'Untitled')}</span>
+            </div>
+          `).join('') || '<div style="color:var(--text-muted);font-size:.8rem;padding:.5rem 0">No actions synced yet</div>'}
+        </div>
+      </div>
+      
+      <!-- Firebird Summary -->
+      <div class="card command-card firebird" role="article" tabindex="0">
+        <div style="font-size:2.5rem;margin-bottom:.25rem">🔥</div>
+        <div class="command-label">Firebird Summary</div>
+        <div class="command-meta">
+          ${data.grants?.filter(g => (g.properties?.Project || g.project) === 'Firebird').length || 0} grants • 
+          ${data.projects?.filter(p => (p.properties?.Project || p.project) === 'Firebird').length || 0} tasks
+        </div>
+        <div style="margin-top:.75rem;font-size:.8rem;color:var(--text-secondary)">
+          ${data.actions?.filter(a => (a.properties?.Project || a.project) === 'Firebird').length || 0} pending actions
+        </div>
+      </div>
+    </div>
+    
+    <!-- Quick Add Section -->
+    <div class="card" style="margin-top:1.5rem">
+      <div class="card-header">
+        <span class="card-title">⚡ Quick Add</span>
+      </div>
+      <div class="quick-add-grid">
+        <button class="btn btn-ghost" onclick="quickAddNotion('jobs')">💼 Add Job Application</button>
+        <button class="btn btn-ghost" onclick="quickAddNotion('actions')">⚡ Add Action Item</button>
+        <button class="btn btn-ghost" onclick="quickAddNotion('content')">✍️ Add Content Idea</button>
+        <button class="btn btn-ghost" onclick="quickAddNotion('projects')">📁 Add Project Task</button>
+      </div>
     </div>
   `;
 }
@@ -900,7 +1119,7 @@ function openAgentPanel(id) {
 function sendAgentTask(id) {
   closeSlidePanel();
   openModal(`
-    <div class="modal-header"><h3 class="modal-title">Send Task</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="modal-header"><h3 class="modal-title" id="modalTitle">Send Task</h3><button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button></div>
     <textarea class="modal-input textarea" id="agentTaskMsg" placeholder="Describe what you need..." autofocus></textarea>
     <div class="modal-actions">
       <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Cancel</button>
@@ -921,7 +1140,7 @@ function submitAgentTask(id) {
 }
 function addDecision() {
   openModal(`
-    <div class="modal-header"><h3 class="modal-title">Log Decision</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="modal-header"><h3 class="modal-title" id="modalTitle">Log Decision</h3><button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button></div>
     <input class="modal-input" id="decQ" placeholder="Decision question" autofocus>
     <textarea class="modal-input textarea" id="decS" placeholder="Decision summary"></textarea>
     <input class="modal-input" id="decA" placeholder="Agents consulted (comma-separated)">
@@ -999,7 +1218,7 @@ function renderMeetingsTab(el) {
   el.innerHTML = `
     <div class="welcome-bar"><h1 class="welcome-title">📞 Rituals</h1><p class="welcome-subtitle">Sacred gatherings</p></div>
     ${today.length?`<div style="margin-bottom:2rem"><div class="card-header"><span class="card-title">🔥 Today (${today.length})</span></div><div class="meetings-grid">${today.map(m=>renderCard(m,true)).join('')}</div></div>`:''}
-    <div style="margin-bottom:1.5rem"><div class="card-header"><span class="card-title">🌙 Upcoming (${upcoming.length})</span><button class="btn btn-sm btn-primary" onclick="addMeeting()">+ Add Meeting</button></div>
+    <div style="margin-bottom:1.5rem"><div class="card-header"><span class="card-title">🌙 Upcoming (${upcoming.length})</span><button class="btn btn-sm btn-primary" onclick="addMeeting()" aria-label="Add meeting">+ Add Meeting</button></div>
       ${upcoming.length?`<div class="meetings-grid">${upcoming.map(m=>renderCard(m)).join('')}</div>`:`<div class="card" style="text-align:center;padding:2rem;color:var(--text-muted)">No upcoming meetings</div>`}
     </div>
     ${past.length?`<div class="archive-toggle" onclick="document.getElementById('mtg-archive').classList.toggle('open');this.querySelector('span:first-child').textContent=document.getElementById('mtg-archive').classList.contains('open')?'▼':'▶'"><span>▶</span><span>Archive (${past.length})</span></div><div class="archive-section" id="mtg-archive"><div class="meetings-grid">${past.map(m=>renderCard(m)).join('')}</div></div>`:''}
@@ -1031,7 +1250,7 @@ function deleteMeeting(id) { if(!confirm('Delete?')) return; saveMeetingsData(ge
 function addMeeting(editId=null) {
   const m = editId ? getMeetings().find(x=>x.id===editId) : null;
   openModal(`
-    <div class="modal-header"><h3 class="modal-title">${m?'Edit':'Add'} Meeting</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="modal-header"><h3 class="modal-title" id="modalTitle">${m?'Edit':'Add'} Meeting</h3><button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button></div>
     <input type="hidden" id="mtgEditId" value="${editId||''}">
     <input class="modal-input" id="mtgTitle" placeholder="Meeting title" value="${m?esc(m.title):''}">
     <div class="modal-row">
@@ -1119,7 +1338,7 @@ function renderIntelCard(i) {
 function addIntel(editId=null) {
   const i = editId ? getIntel().find(x=>x.id===editId) : null;
   openModal(`
-    <div class="modal-header"><h3 class="modal-title">${i?'Edit':'Add'} Intel</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="modal-header"><h3 class="modal-title" id="modalTitle">${i?'Edit':'Add'} Intel</h3><button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button></div>
     <input type="hidden" id="intelEditId" value="${editId||''}">
     <input class="modal-input" id="intelTitle" placeholder="Title" value="${i?esc(i.title):''}">
     <div class="modal-row">
@@ -1467,8 +1686,8 @@ function brainQuickAction(action){
   // Show confirmation modal instead of executing
   openModal(`
     <div class="modal-header">
-      <h3 class="modal-title">Confirm Action</h3>
-      <button class="modal-close" onclick="closeModal()">×</button>
+      <h3 class="modal-title" id="modalTitle">Confirm Action</h3>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button>
     </div>
     <p style="color:var(--text-secondary);margin-bottom:1rem">You are about to request: <strong>${esc(action)}</strong></p>
     <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1rem">This action requires confirmation and will be sent to your OpenClaw agent.</p>
@@ -1510,7 +1729,7 @@ function renderTimelineTab(el) {
         <button class="btn btn-ghost btn-sm" style="margin-top:.5rem" onclick="addMilestone(${p.id})">+ Add milestone</button>
       </div>
     `).join('')}</div>
-    <button class="btn btn-primary" style="margin-top:1.5rem" onclick="addTimelinePhase()">+ Add Phase</button>
+    <button class="btn btn-primary" style="margin-top:1.5rem" onclick="addTimelinePhase()" aria-label="Add phase">+ Add Phase</button>
   `;
 }
 
@@ -1525,7 +1744,7 @@ function addMilestone(pid) {
 }
 function addTimelinePhase() {
   openModal(`
-    <div class="modal-header"><h3 class="modal-title">Add Phase</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="modal-header"><h3 class="modal-title" id="modalTitle">Add Phase</h3><button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button></div>
     <input class="modal-input" id="phaseTitle" placeholder="Phase title">
     <input class="modal-input" id="phaseDate" placeholder="Date range (e.g. 2026+)">
     <textarea class="modal-input textarea" id="phaseDesc" placeholder="Description"></textarea>
@@ -1601,6 +1820,77 @@ function boot() {
 }
 
 boot();
+
+// PWA: Service Worker Registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('[PWA] ServiceWorker registered with scope:', registration.scope);
+        
+        // Handle updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New content available, show update notification
+              console.log('[PWA] New content available, refreshing...');
+              // Optional: Show a toast notification to the user
+              if (typeof toast === 'function') {
+                toast('Update available! Refresh to see changes.', 'info');
+              }
+            }
+          });
+        });
+      })
+      .catch(error => {
+        console.error('[PWA] ServiceWorker registration failed:', error);
+      });
+    
+    // Listen for messages from service worker
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data?.type === 'SYNC_COMPLETED') {
+        console.log('[PWA] Background sync completed');
+      }
+    });
+  });
+}
+
+// PWA: Handle beforeinstallprompt for install button
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevent the mini-infobar from appearing on mobile
+  e.preventDefault();
+  // Store the event for later use
+  deferredPrompt = e;
+  console.log('[PWA] Install prompt available');
+});
+
+// PWA: Handle app installed
+window.addEventListener('appinstalled', () => {
+  console.log('[PWA] Pleiades OS was installed');
+  deferredPrompt = null;
+  if (typeof toast === 'function') {
+    toast('Pleiades OS installed! ✨', 'success');
+  }
+});
+
+// PWA: Lazy loading for tab content - only render active tab initially
+// This is handled by the existing renderActiveTab function
+// Additional optimization: IntersectionObserver for heavy elements
+if ('IntersectionObserver' in window) {
+  const lazyElements = document.querySelectorAll('[data-lazy]');
+  const lazyObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('lazy-loaded');
+        lazyObserver.unobserve(entry.target);
+      }
+    });
+  }, { rootMargin: '50px' });
+  
+  lazyElements.forEach(el => lazyObserver.observe(el));
+}
 </script>
 </body>
 </html>

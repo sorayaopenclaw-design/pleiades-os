@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Pleiades OS</title>
+  <meta name="theme-color" content="#050508">
+  <style>
+    :root {
+      --bg-primary: #050508;
+      --bg-card: rgba(255, 255, 255, 0.03);
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --accent: #8b5cf6;
+      --text-primary: #fff;
+      --text-secondary: rgba(255, 255, 255, 0.75);
+      --text-muted: rgba(255, 255, 255, 0.5);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.6;
+    }
+    
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, .08) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 80%, rgba(236, 72, 153, .05) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    .container {
+      text-align: center;
+      padding: 2rem;
+      max-width: 400px;
+    }
+    
+    .icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      opacity: 0.8;
+    }
+    
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(135deg, var(--accent), #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    p {
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover {
+      background: #7c3aed;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+    }
+    
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      margin-left: 0.75rem;
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+    
+    .status {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #ef4444;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .cached-info {
+      margin-top: 1.5rem;
+      text-align: left;
+    }
+    
+    .cached-info h3 {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+    }
+    
+    .cached-info ul {
+      list-style: none;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    
+    .cached-info li {
+      padding: 0.375rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .cached-info li::before {
+      content: '✓';
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>You're Offline</h1>
+    <p>Pleiades OS is having trouble connecting to the network. Some features may be limited, but your cached data is still available.</p>
+    
+    <div>
+      <a href="/" class="btn">↻ Try Again</a>
+      <button class="btn btn-secondary" onclick="showCachedData()">📂 View Cached</button>
+    </div>
+    
+    <div class="status">
+      <span class="status-indicator"></span>
+      <span id="statusText">Waiting for connection...</span>
+    </div>
+    
+    <div class="cached-info" id="cachedInfo" style="display: none;">
+      <h3>Available Offline:</h3>
+      <ul>
+        <li>Dashboard & Priorities</li>
+        <li>Tasks & Projects</li>
+        <li>Calendar Events</li>
+        <li>Meeting Notes</li>
+        <li>Field Notes</li>
+      </ul>
+    </div>
+  </div>
+  
+  <script>
+    // Check connection status
+    function updateStatus() {
+      const statusText = document.getElementById('statusText');
+      const indicator = document.querySelector('.status-indicator');
+      
+      if (navigator.onLine) {
+        statusText.textContent = 'Connection restored! Reloading...';
+        indicator.style.background = '#22c55e';
+        indicator.style.animation = 'none';
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
+      } else {
+        statusText.textContent = 'Waiting for connection...';
+        indicator.style.background = '#ef4444';
+      }
+    }
+    
+    function showCachedData() {
+      document.getElementById('cachedInfo').style.display = 'block';
+    }
+    
+    // Listen for online/offline events
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+    
+    // Initial check
+    updateStatus();
+    
+    // Try to reload periodically
+    setInterval(() => {
+      if (navigator.onLine) {
+        window.location.href = '/';
+      }
+    }, 30000);
+  </script>
+</body>
+</html>
