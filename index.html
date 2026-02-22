@@ -452,6 +452,36 @@
       .search-results{width:calc(100vw - 2rem);right:-1rem}
     }
     @media(max-width:480px){.metrics-grid{grid-template-columns:1fr}.nav-tab{padding:.375rem .5rem;font-size:.7rem}}
+    
+    /* Mobile Touch Improvements */
+    @media(max-width:768px){
+      .btn,.nav-tab,.priority-check,.task-action-btn,.btn-icon{
+        min-height:44px;
+        min-width:44px;
+      }
+      .priority-item{padding:.875rem .75rem}
+      .task-card{padding:1rem}
+      .card{padding:1rem}
+      .agent-card{padding:1rem}
+      .meeting-card{padding:1rem}
+      .command-card{padding:1rem}
+      input,select,textarea{font-size:16px}
+      .modal-input{font-size:16px}
+      #paletteInput{font-size:16px}
+      .constellation-node{cursor:default}
+      .constellation-node:active{opacity:0.8}
+    }
+    
+    /* Prevent text zoom on iOS */
+    @supports(-webkit-touch-callout:none){
+      input,select,textarea{font-size:16px !important}
+    }
+    
+    /* Safe area for notched devices */
+    @supports(padding:max(0px)){
+      .header{padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right))}
+      .main-content{padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right));padding-bottom:max(1rem,env(safe-area-inset-bottom))}
+    }
   </style>
 </head>
 <body>
