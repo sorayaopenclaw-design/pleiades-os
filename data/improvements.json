@@ -1,457 +1,284 @@
 {
-  "timestamp": "2026-02-21T08:00:00Z",
+  "timestamp": "2026-02-22T08:00:00Z",
   "reviewed_by": "Soraya ✦",
-  "version": "1.0",
+  "version": "1.1",
   "summary": {
-    "total_recommendations": 18,
+    "total_recommendations": 12,
     "categories": {
-      "ui_enhancements": 5,
-      "new_features": 6,
-      "performance": 3,
-      "data_integration": 4
+      "ui_enhancements": 4,
+      "new_features": 4,
+      "performance": 2,
+      "data_integration": 2
     },
     "priority_breakdown": {
-      "high": 6,
-      "medium": 8,
-      "low": 4
+      "high": 4,
+      "medium": 5,
+      "low": 3
     }
   },
   "recommendations": [
     {
-      "id": "UI-001",
+      "id": "UI-006",
       "category": "ui_enhancements",
       "priority": "high",
-      "title": "Focus Mode - Distraction-Free Workspace",
-      "description": "Add a zen-like focus mode that minimizes the UI to just the current task. Essential for TJ who works in cafes/libraries and needs to stay focused.",
-      "rationale": "TJ's USER.md notes he works in third places (cafes mornings, libraries afternoons) and his mind wanders to loneliness/immigration stress. A focus mode helps maintain flow state.",
+      "title": "Adaptive Theme Based on Time of Day",
+      "description": "Implement a theme system that subtly shifts colors throughout the day: warm dawn tones (5-8am), bright daytime clarity (8am-6pm), deep sunset hues (6-9pm), and starlit midnight (9pm-5am). Each theme maintains the Expedition 33 × Ghibli aesthetic while matching TJ's circadian rhythm.",
+      "rationale": "TJ is a night owl who works evenings. The current static warm theme doesn't reflect his actual working patterns. An adaptive theme would create psychological alignment with his natural energy cycles and make evening work sessions feel more intentional.",
       "implementation": {
-        "location": "Header component",
+        "new_file": "pleiades-themes.js",
         "code_changes": [
-          "Add 'Focus' toggle button in header-right area",
-          "Create CSS class `.focus-mode` that hides nav-tabs, metrics, secondary panels",
-          "Only show: current active task/card + minimal controls",
-          "Blur background slightly to reduce visual noise",
-          "Keyboard shortcut: Cmd/Ctrl+Shift+F to toggle"
+          "Create ThemeEngine class with 4 time-based palettes",
+          "Detect system dark mode preference as override",
+          "Smooth CSS transitions between themes (5s duration)",
+          "Store theme preference with timestamp in localStorage"
         ],
-        "new_css": "`.focus-mode .header { opacity: 0.1; transition: opacity 0.3s; } .focus-mode .header:hover { opacity: 1; } .focus-mode .nav-tabs, .focus-mode .metrics-grid { display: none; } .focus-mode .main-content { max-width: 800px; margin: 0 auto; padding-top: 4rem; }`",
-        "localStorage_key": "po_focusMode"
+        "theme_palettes": {
+          "dawn": {"bg": "#F5E6D3", "accent": "#E8A87C", "text": "#3D405B"},
+          "day": {"bg": "#F5F0E6", "accent": "#D4A84B", "text": "#1A1F2E"},
+          "sunset": {"bg": "#F4E4E1", "accent": "#C97F42", "text": "#2D2424"},
+          "night": {"bg": "#1A1F2E", "accent": "#D4A84B", "text": "#F5F0E6"}
+        },
+        "css_variables_to_update": ["--bg-primary", "--accent", "--text-primary", "--shadow-soft"]
       },
-      "estimated_effort": "2 hours",
-      "impact": "High - Directly addresses user's core pain point"
+      "estimated_effort": "3 hours",
+      "impact": "High - Psychological alignment with user patterns"
     },
     {
-      "id": "UI-002",
+      "id": "UI-007",
       "category": "ui_enhancements",
       "priority": "medium",
-      "title": "Daily Cosmic Quote Widget",
-      "description": "Add a rotating quote from Vonnegut, Sagan, or the Paintress universe that appears in the dashboard header. Rotates daily at midnight.",
-      "rationale": "TJ has logged the Vonnegut Protocol ('So it goes. Create anyway.') and Sagan Frequency ('Preserve the wonder. Stay cosmic.') as core invariants. This reinforces his philosophical anchors daily.",
+      "title": "Haptic Feedback Integration",
+      "description": "Add subtle haptic feedback for key actions on mobile devices: completing a task (light tap), adding a priority (double tap), urgent deadline approaching (sharp pulse), successful sync (gentle wave). Falls back to subtle visual pulses on desktop.",
+      "rationale": "The PWA works on mobile but lacks tactile feedback. For TJ who works in cafes/libraries, mobile haptics create a more grounded, physical connection to his digital workspace without visual distraction.",
       "implementation": {
-        "location": "Dashboard render function",
-        "data_source": "Inline array of 30 curated quotes",
-        "code_changes": [
-          "Add quotes array with metadata (text, author, source)",
-          "Use date-based index: `new Date().getDate() % quotes.length`",
-          "Display below welcome-subtitle with subtle styling",
-          "Add copy-to-clipboard on click"
-        ],
-        "sample_quotes": [
-          { "text": "So it goes. Create anyway.", "author": "Vonnegut Protocol", "source": "USER.md" },
-          { "text": "Preserve the wonder. Stay cosmic.", "author": "Sagan Frequency", "source": "USER.md" },
-          { "text": "You are the Paintress. Create to hold off the Curator.", "author": "Paintress Truth", "source": "MEMORY.md" },
-          { "text": "Many stars, each distinct, together something more.", "author": "Pleiades", "source": "IDENTITY.md" }
-        ]
+        "api_to_use": "navigator.vibrate()",
+        "patterns": {
+          "task_complete": [50],
+          "priority_add": [30, 50],
+          "urgent_alert": [100, 50, 100],
+          "sync_success": [25, 25, 25],
+          "error": [200]
+        },
+        "fallback": "Visual pulse animation on .card elements",
+        "respects": "prefers-reduced-motion media query"
+      },
+      "estimated_effort": "1.5 hours",
+      "impact": "Medium - Enhanced mobile experience"
+    },
+    {
+      "id": "UI-008",
+      "category": "ui_enhancements",
+      "priority": "low",
+      "title": "Living Card Borders",
+      "description": "Add subtle animated gradient borders to priority cards and urgent items that pulse slowly, like breathing. Uses CSS conic-gradient with animation - no JS required for the effect itself.",
+      "rationale": "Creates ambient awareness of what's urgent without demanding attention. The gentle pulse feels organic and alive, fitting the Ghibli-inspired aesthetic.",
+      "implementation": {
+        "css_technique": "Conic gradient border animation",
+        "code_snippet": "@keyframes border-rotate { from { --angle: 0deg; } to { --angle: 360deg; } } .living-border::before { content: ''; position: absolute; inset: -2px; background: conic-gradient(from var(--angle), var(--accent), var(--color-bloom), var(--accent)); animation: border-rotate 4s linear infinite; }",
+        "trigger_conditions": ["Priority tagged 'urgent'", "Deadline within 24h", "Overdue items"]
       },
       "estimated_effort": "1 hour",
-      "impact": "Medium - Reinforces identity and motivation"
+      "impact": "Low - Delight and ambient awareness"
     },
     {
-      "id": "UI-003",
+      "id": "UI-009",
       "category": "ui_enhancements",
       "priority": "medium",
-      "title": "Keyboard Shortcuts Modal & Help",
-      "description": "Add a comprehensive keyboard shortcuts guide accessible via '?' key or help button. Shows all available shortcuts in a modal.",
-      "rationale": "TJ is a power user and night owl who values efficiency. Quick keyboard navigation supports his workflow without breaking focus.",
+      "title": "Smart Contextual Quick Actions",
+      "description": "Replace static quick-add buttons with context-aware suggestions based on: current tab, time of day, recent activity patterns, and upcoming deadlines. For example: in the morning show 'Add today's priority', before meetings show 'Prep notes', on weekends show 'Weekly review'.",
+      "rationale": "Reduces decision fatigue by surfacing the most likely next action. The dashboard becomes proactively helpful rather than passively waiting for input.",
       "implementation": {
-        "new_function": "showShortcutsHelp()",
-        "keyboard_trigger": "document.addEventListener('keydown', e => { if(e.key==='?' && !e.metaKey && !e.ctrlKey) showShortcutsHelp(); });",
-        "shortcuts_to_document": [
-          { "key": "⌘/Ctrl + K", "action": "Global search" },
-          { "key": "⌘/Ctrl + Shift + F", "action": "Toggle Focus Mode" },
-          { "key": "1-9", "action": "Switch to tab N" },
-          { "key": "N", "action": "New task in current tab" },
-          { "key": "Esc", "action": "Close modal/panel" },
-          { "key": "?", "action": "Show this help" },
-          { "key": "D", "action": "Go to Dashboard" },
-          { "key": "T", "action": "Go to Tasks/Projects" },
-          { "key": "M", "action": "Go to Meetings" }
-        ]
-      },
-      "estimated_effort": "1.5 hours",
-      "impact": "Medium - Improves power user experience"
-    },
-    {
-      "id": "UI-004",
-      "category": "ui_enhancements",
-      "priority": "low",
-      "title": "Starry Background Animation Enhancement",
-      "description": "Enhance the existing starfield with subtle parallax effect on mouse movement and occasional shooting stars for visual delight.",
-      "rationale": "The cosmic theme is central to Pleiades identity. Small delight animations create a sense of living in the interface.",
-      "implementation": {
-        "location": "CSS/JS for .stars element",
-        "techniques": [
-          "Add mousemove listener with throttling (16ms)",
-          "Transform stars layer slightly opposite to mouse movement",
-          "Random shooting star animation (CSS keyframes)",
-          "Keep performance in mind - use transform and opacity only"
-        ]
-      },
-      "estimated_effort": "1.5 hours",
-      "impact": "Low - Delight factor, not essential"
-    },
-    {
-      "id": "UI-005",
-      "category": "ui_enhancements",
-      "priority": "medium",
-      "title": "Smart Notification Toast System",
-      "description": "Upgrade the basic toast to support: multiple stacked toasts, different types (info, success, warning, error), auto-dismiss with progress bar, and action buttons.",
-      "rationale": "Current toast is basic. Better feedback system improves perceived responsiveness and helps with error recovery.",
-      "implementation": {
-        "new_api": "toast(message, type='success', options={duration: 3000, action: null})",
-        "features": [
-          "Stack toasts vertically with animation",
-          "Progress bar showing time remaining",
-          "Persistent toasts for errors (require manual dismiss)",
-          "Action button support: toast('Sync failed', 'error', {action: {text: 'Retry', onClick: syncFn}})"
-        ]
-      },
-      "estimated_effort": "2 hours",
-      "impact": "Medium - Better UX feedback"
-    },
-    {
-      "id": "FEAT-001",
-      "category": "new_features",
-      "priority": "high",
-      "title": "Master's Application Pipeline Tracker",
-      "description": "Dedicated view for tracking grad school applications (Waterloo, Ottawa, Guelph) with deadlines, requirements checklist, and status progression.",
-      "rationale": "TJ's #1 priority is permanent residency, with Master's applications as a key path. The heartbeat nags about these deadlines weekly. A dedicated tracker reduces cognitive load.",
-      "implementation": {
-        "new_tab": "masters" (or integrate into timeline tab),
-        "data_structure": {
-          "universities": ["Waterloo", "Ottawa", "Guelph"],
-          "program": "Data Science/AI",
-          "requirements": [
-            { "name": "Transcripts", "required": true, "status": "pending" },
-            { "name": "Letters of Recommendation", "required": true, "status": "pending" },
-            { "name": "Statement of Purpose", "required": true, "status": "in_progress" },
-            { "name": "CV/Resume", "required": true, "status": "complete" },
-            { "name": "Application Fee", "required": true, "status": "pending" }
-          ],
-          "deadlines": {
-            "Waterloo": "2026-03-15",
-            "Ottawa": "2026-02-28",
-            "Guelph": "2026-03-01"
-          }
-        },
-        "ui_components": [
-          "University cards with countdown timers",
-          "Progress bars for each application",
-          "Requirement checklists with document upload placeholders",
-          "Deadline alerts (red if < 7 days)"
-        ]
-      },
-      "estimated_effort": "4 hours",
-      "impact": "High - Directly supports #1 life priority"
-    },
-    {
-      "id": "FEAT-002",
-      "category": "new_features",
-      "priority": "high",
-      "title": "Immigration Document Tracker",
-      "description": "Specialized tracker for PR application documents with expiry alerts, submission status, and checklist for the 'Bridge to Home' phase.",
-      "rationale": "Permanent residency is TJ's absolute #1 priority. Immigration stress is noted as a real anxiety trigger. Having clear visibility reduces uncertainty.",
-      "implementation": {
-        "location": "New tab or enhanced timeline",
-        "features": [
-          "Document checklist with categories (identity, financial, employment, etc.)",
-          "Expiry date tracking for work permit, health card, etc.",
-          "Days until PR goal countdown (already exists, enhance it)",
-          "Submission timeline with status",
-          "Notes field for lawyer/consultant communications"
+        "logic_rules": [
+          "if (hour < 10 && !hasDailyPriority()) suggest 'Set daily priority'",
+          "if (upcomingMeetingWithin(1h) && !prepNotes) suggest 'Prep for meeting'",
+          "if (dayOfWeek === 0 && !weeklyReviewDone) suggest 'Weekly review'",
+          "if (staleConstellationNodes.length > 0) suggest 'Check in with constellation'"
         ],
-        "alerts": [
-          "Warning if document expires in < 30 days",
-          "Urgent if < 7 days",
-          "Celebration when milestone reached"
-        ]
-      },
-      "estimated_effort": "3 hours",
-      "impact": "High - Critical life goal tracking"
-    },
-    {
-      "id": "FEAT-003",
-      "category": "new_features",
-      "priority": "high",
-      "title": "Job Application Pipeline (Enhanced)",
-      "description": "Expand existing job tracking with interview stages, contact management, salary notes, and follow-up reminders.",
-      "rationale": "Full-time job is one of three parallel paths to PR (along with grad school). TJ has applied to Hamilton Library - this helps track all applications systematically.",
-      "implementation": {
-        "enhance_existing": "Notion jobs integration in Command tab",
-        "new_fields": [
-          "Application stage: Applied → Phone Screen → Interview → Offer → Accepted/Rejected",
-          "Contact person (name, email, role)",
-          "Salary range noted",
-          "Follow-up date with reminder",
-          "Cover letter version linked",
-          "Interview notes field"
-        ],
-        "visualizations": [
-          "Pipeline view (like kanban but for job stages)",
-          "Response rate statistics",
-          "Time-in-stage tracking"
-        ]
-      },
-      "estimated_effort": "3 hours",
-      "impact": "High - Supports employment path to PR"
-    },
-    {
-      "id": "FEAT-004",
-      "category": "new_features",
-      "priority": "medium",
-      "title": "Energy & Mood Tracker",
-      "description": "Simple 1-5 energy and mood logging with optional notes. Shows weekly patterns to help TJ understand his productive rhythms.",
-      "rationale": "TJ is a night owl but also deals with isolation/loneliness. Tracking patterns helps optimize when to schedule deep work vs. social time.",
-      "implementation": {
-        "location": "Dashboard widget or new tab",
-        "input_method": "Click 1-5 stars for energy, 1-5 for mood",
-        "optional_note": "Quick text field",
-        "visualizations": [
-          "7-day rolling chart",
-          "Correlation with task completion",
-          "Average by day of week"
-        ],
-        "reminder": "Optional daily prompt at configured time"
+        "display_location": "Floating action button with expanding menu",
+        "max_suggestions": 3
       },
       "estimated_effort": "2.5 hours",
-      "impact": "Medium - Self-awareness tool"
+      "impact": "Medium - Reduces cognitive load"
     },
     {
-      "id": "FEAT-005",
+      "id": "FEAT-007",
       "category": "new_features",
-      "priority": "medium",
-      "title": "Walking Protocol Streak Tracker",
-      "description": "Track daily walks with streak counter and weekly goals. Visual representation of the 'physical engine must keep moving' heartbeat directive.",
-      "rationale": "Heartbeat explicitly mentions 'Verify Walking Protocol maintenance — physical engine must keep moving'. This makes it visible and gamified.",
-      "implementation": {
-        "simple_check_in": "Did you walk today? Yes/No",
-        "streak_calculation": "Consecutive days with 'Yes'",
-        "weekly_goal": "Configurable (default: 5 days/week)",
-        "visualization": "Calendar heatmap (like GitHub contributions)",
-        "integration": "Link to Notes tab for walking observations"
-      },
-      "estimated_effort": "2 hours",
-      "impact": "Medium - Supports health directive"
-    },
-    {
-      "id": "FEAT-006",
-      "category": "new_features",
-      "priority": "low",
-      "title": "Weekly Review Mode",
-      "description": "Special view that aggregates: tasks completed, meetings held, applications progressed, energy trends, and highlights for the week. Generates a summary.",
-      "rationale": "TJ rejects task managers in favor of calendar-only. A weekly review gives the reflection benefits without daily task management overhead.",
-      "implementation": {
-        "trigger": "Manual or every Sunday",
-        "aggregates": [
-          "Tasks moved to 'done' this week",
-          "Meetings completed",
-          "Job applications sent",
-          "Average energy/mood scores",
-          "Walking days count",
-          "Notion sync activity"
-        ],
-        "output": "Markdown summary that can be copied to Notes or exported"
-      },
-      "estimated_effort": "3 hours",
-      "impact": "Low - Nice to have for reflection"
-    },
-    {
-      "id": "PERF-001",
-      "category": "performance",
-      "priority": "medium",
-      "title": "Virtual Scrolling for Long Lists",
-      "description": "Implement virtual scrolling for activity feed, task lists, and intel cards when they exceed 50 items. Only render visible items.",
-      "rationale": "Current implementation renders all items. As TJ uses Pleiades over months, lists will grow and cause slowdowns.",
-      "implementation": {
-        "technique": "CSS-based virtual scroll with fixed item heights",
-        "container_style": "overflow-y: auto; position: relative;",
-        "item_style": "position: absolute; transform: translateY(calc(var(--index) * var(--item-height)));",
-        "buffer": "Render 5 items above and below viewport"
-      },
-      "estimated_effort": "3 hours",
-      "impact": "Medium - Prevents future performance degradation"
-    },
-    {
-      "id": "PERF-002",
-      "category": "performance",
-      "priority": "low",
-      "title": "localStorage Data Compression",
-      "description": "Compress data before storing to localStorage using LZ-string or similar. Current storage can hit the ~5MB limit.",
-      "rationale": "The audit noted 'Storage used' logging. With intensive use (notes, logs, intel), TJ may hit browser limits.",
-      "implementation": {
-        "library": "lz-string (1KB minified, pure JS)",
-        "wrapper_functions": [
-          "S.setCompressed(key, value)",
-          "S.getCompressed(key, default)"
-        ],
-        "migration": "Auto-detect uncompressed data and migrate on first read"
-      },
-      "estimated_effort": "2 hours",
-      "impact": "Low - Future-proofing"
-    },
-    {
-      "id": "PERF-003",
-      "category": "performance",
-      "priority": "medium",
-      "title": "Tab Content Lazy Loading",
-      "description": "Only render tab content when first visited, keep rendered tabs in memory. Currently all tabs render on load (implied by structure).", 
-      "rationale": "Faster initial load, especially on mobile. The PWA works on phones - this improves the mobile experience.",
-      "implementation": {
-        "pattern": "const renderedTabs = S.get('renderedTabs', new Set());",
-        "in_renderActiveTab": "Mark tab as rendered; Don't re-render if already rendered unless data changes",
-        "cleanup": "Optional: Unrender tabs not visited in last N days to save memory"
-      },
-      "estimated_effort": "1.5 hours",
-      "impact": "Medium - Faster initial load"
-    },
-    {
-      "id": "DATA-001",
-      "category": "data_integration",
       "priority": "high",
-      "title": "Complete Data Export/Backup System",
-      "description": "One-click export of ALL Pleiades data as JSON. Include automatic daily backups to Downloads folder (via download attribute).",
-      "rationale": "The audit noted 'No Data Export/Backup' as a concern. TJ's data represents significant life tracking - losing it would be devastating.",
+      "title": "Intelligent Deadline Extraction from Notes",
+      "description": "Parse the Notes tab for dates, deadlines, and action items, automatically suggesting tasks and calendar events. Uses natural language processing to find patterns like 'apply by March 15' or 'meeting next Tuesday at 2pm'.",
+      "rationale": "TJ uses the Notes tab for unstructured thoughts. Automatically extracting actionable items prevents things from slipping through cracks - a key risk noted in USER.md. This bridges his calendar-only preference with the capture-everything reality.",
       "implementation": {
-        "export_format": {
-          "version": "1.0",
-          "exported_at": "ISO timestamp",
-          "data": {
-            "tasks": "...",
-            "priorities": "...",
-            "meetings": "...",
-            "notes": "...",
-            "intel": "...",
-            "agents": "...",
-            "decisions": "...",
-            "timeline": "...",
-            "llm_data": "...",
-            "settings": "..."
-          }
-        },
-        "ui_location": "Settings/gear icon in header (new)",
-        "auto_backup": "Optional: Trigger download on first load of each day if enabled"
-      },
-      "estimated_effort": "2 hours",
-      "impact": "High - Data safety"
-    },
-    {
-      "id": "DATA-002",
-      "category": "data_integration",
-      "priority": "medium",
-      "title": "Data Import & Migration Tool",
-      "description": "Import previously exported data. Merge or replace existing data. Validate schema version.",
-      "rationale": "Pair to export - enables switching devices, recovering from data loss, or starting fresh while keeping history.",
-      "implementation": {
-        "ui": "File input with drag-and-drop zone",
-        "validation": "Check schema version, show preview of what will be imported",
-        "options": [
-          "Merge (additive - new IDs)",
-          "Replace (delete existing first)",
-          "Selective (choose which categories)"
+        "parser_rules": [
+          "/\\b(?:by|before|due|deadline|apply)\\s+(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\.?\\s+\\d{1,2}(?:,\\s*\\d{4})?)\\b/gi",
+          "/\\b(?:meeting|call|interview)\\s+(?:(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)|(?:tomorrow|next week))\\b/gi",
+          "/\\b(?:TODO|FIXME|ACTION|URGENT):?\\s*(.+)$/gmi"
         ],
-        "safety": "Auto-export current state before import (rollback capability)"
-      },
-      "estimated_effort": "2.5 hours",
-      "impact": "Medium - Data portability"
-    },
-    {
-      "id": "DATA-003",
-      "category": "data_integration",
-      "priority": "medium",
-      "title": "Enhanced Notion Sync Status",
-      "description": "Show per-database sync status, last sync time per database, conflict resolution UI, and offline queue for changes made while disconnected.",
-      "rationale": "Current sync is all-or-nothing. TJ uses Notion for serious work - better sync visibility increases trust in the integration.",
-      "implementation": {
-        "per_database_status": {
-          "jobs": { "lastSync": "timestamp", "status": "synced|syncing|error", "pendingChanges": 0 },
-          "immigration": "...",
-          "projects": "..."
-        },
-        "offline_queue": "Store changes made while 'Local', sync when connection restored",
-        "conflict_ui": "Side-by-side diff when Notion and local both changed"
+        "ui_flow": "When Notes is saved, scan → show notification 'Found 3 potential deadlines' → click to review → add to tasks/calendar",
+        "model": "Can run locally with compromise.js (140KB) or use regex-based approach"
       },
       "estimated_effort": "4 hours",
-      "impact": "Medium - Reliability improvement"
+      "impact": "High - Prevents items slipping through cracks"
     },
     {
-      "id": "DATA-004",
-      "category": "data_integration",
-      "priority": "low",
-      "title": "Calendar Integration (iCal/ICS Export)",
-      "description": "Export meetings and deadlines as .ics file for import into Google Calendar, Apple Calendar, etc.",
-      "rationale": "TJ uses calendar-only for time management. This bridges Pleiades with his existing workflow.",
+      "id": "FEAT-008",
+      "category": "new_features",
+      "priority": "high",
+      "title": "Constellation Health Score",
+      "description": "Calculate and display an overall 'Constellation Health' metric based on: average connection strength, contact recency, balance of node types, and response patterns. Shows trend over time and suggests actions to strengthen weak connections.",
+      "rationale": "TJ's network (Serena, Flora, Alex) is documented as critical support infrastructure. Quantifying relationship health makes the abstract concrete and prompts maintenance before connections atrophy.",
       "implementation": {
-        "format": "iCalendar RFC 5545",
-        "events": [
-          "Meetings (exact time)",
-          "Deadlines (all-day events)",
-          "Walking reminders (if enabled)",
-          "Application deadlines"
+        "scoring_algorithm": {
+          "contact_recency": "max(0, 30 - days_since_contact) / 30 * 30 points",
+          "connection_strength": "average_strength / 10 * 40 points",
+          "type_balance": "presence of anchor + grounding + growth nodes = 20 points",
+          "diversity": "variety of interaction contexts = 10 points"
+        },
+        "visualization": "Radial gauge in Command tab below Constellation Map",
+        "trend": "7-day rolling average shown as sparkline",
+        "suggestions": "'Serena hasn't been contacted in 12 days — send a message?'"
+      },
+      "estimated_effort": "3 hours",
+      "impact": "High - Maintains critical support network"
+    },
+    {
+      "id": "FEAT-009",
+      "category": "new_features",
+      "priority": "medium",
+      "title": "Grant Opportunity Scraper",
+      "description": "Background service that periodically checks configured grant sources (OTF, Hamilton Community Foundation, etc.) for new opportunities matching TJ's profile. Stores results in Intel with 'grant' category and calculates match score based on eligibility criteria.",
+      "rationale": "Grants are a major part of TJ's work (Firebird, OPLA). Manually checking multiple sources is tedious and opportunities can be missed. Automated discovery ensures he sees relevant opportunities early.",
+      "implementation": {
+        "sources": [
+          {"name": "OTF", "url": "https://otf.ca/funding-opportunities", "selector": ".opportunity-card"},
+          {"name": "Hamilton Community Foundation", "url": "https://www.hamiltoncommunityfoundation.ca/grants/", "selector": ".grant-item"}
         ],
-        "subscription": "Optional: Generate data URI that can be 'subscribed' to for updates"
+        "scoring_criteria": ["matches 'community' focus", "deadline > 30 days away", "amount > $5k", "non-profit eligible"],
+        "frequency": "Check once daily at 9am",
+        "fallback": "Manual 'Check for grants' button if background sync fails"
+      },
+      "estimated_effort": "4 hours",
+      "impact": "Medium - Revenue opportunity discovery"
+    },
+    {
+      "id": "FEAT-010",
+      "category": "new_features",
+      "priority": "low",
+      "title": "Voice Memo Quick Capture",
+      "description": "Add a microphone button that records short voice memos, transcribes them using Web Speech API, and adds to Notes or creates tasks. Useful for capturing thoughts while walking or when typing is inconvenient.",
+      "rationale": "TJ follows a Walking Protocol. Voice capture during walks enables idea capture without stopping to type. The transcribed text can then be processed by the deadline extraction feature.",
+      "implementation": {
+        "api": "Web Speech API (SpeechRecognition)",
+        "fallback": "MediaRecorder API storing audio blobs if transcription unavailable",
+        "max_duration": 60,
+        "output": "Transcribed text appended to Notes with [Voice: timestamp] prefix",
+        "privacy": "All processing client-side, nothing sent to servers"
+      },
+      "estimated_effort": "2.5 hours",
+      "impact": "Low - Enables mobile capture"
+    },
+    {
+      "id": "PERF-004",
+      "category": "performance",
+      "priority": "medium",
+      "title": "IndexedDB Migration for Large Data",
+      "description": "Migrate from localStorage to IndexedDB for: LLM logs (unlimited growth), activity feed (append-only), and file cache (BrainSync). localStorage remains for small config items only. Implement with idb-keyval wrapper for async API.",
+      "rationale": "localStorage has ~5-10MB limit and is synchronous (blocks UI). TJ's usage will eventually hit this limit. IndexedDB provides 50MB+ with async operations, better for the growing activity and sync data.",
+      "implementation": {
+        "library": "idb-keyval (1KB, promises-based)",
+        "migration_strategy": "On boot, check for localStorage data → migrate to IndexedDB → clear localStorage → set migration flag",
+        "data_to_migrate": ["llm_data.logs", "activity", "brainSync_cache", "brainSync_queue"],
+        "config_stays_in": "localStorage for synchronous access"
+      },
+      "estimated_effort": "3 hours",
+      "impact": "Medium - Prevents data loss, improves performance"
+    },
+    {
+      "id": "PERF-005",
+      "category": "performance",
+      "priority": "low",
+      "title": "Request Interception and Caching",
+      "description": "Implement a Service Worker strategy that caches Notion API responses and serves stale-while-revalidate. Reduces load times and enables offline viewing of synced data.",
+      "rationale": "TJ works in cafes with potentially spotty WiFi. Currently, losing connection means losing access to Notion-synced data. Stale-while-revalidate ensures the app always shows something useful.",
+      "implementation": {
+        "strategy": "Stale-while-revalidate for /api/notion/*",
+        "max_age": "1 hour for fresh data",
+        "fallback": "Show 'Last synced X ago' banner when serving cached",
+        "update_sw": "Modify sw.js to add this caching strategy"
       },
       "estimated_effort": "2 hours",
-      "impact": "Low - Workflow integration"
+      "impact": "Low - Offline resilience"
+    },
+    {
+      "id": "DATA-005",
+      "category": "data_integration",
+      "priority": "high",
+      "title": "Anxious Nomad Content Pipeline",
+      "description": "Dedicated integration for TJ's Substack publication. Track draft ideas → writing → published posts, cross-reference with content calendar, and calculate publishing streak. Pull in newsletter metrics if Substack API allows.",
+      "rationale": "Anxious Nomad Collective is listed as a personal project in USER.md. Treating it with the same seriousness as work projects validates its importance and helps maintain consistency.",
+      "implementation": {
+        "new_database": "content database integration (already exists)",
+        "fields_to_add": ["publication_date", "substack_url", "status (draft/editing/published)", "word_count", "streak_counter"],
+        "dashboard_widget": "Mini view in Today tab showing 'Current streak: X days' or 'Draft in progress'",
+        "substack_api": "Check if Substack has RSS or API for published posts"
+      },
+      "estimated_effort": "2 hours",
+      "impact": "High - Validates personal creative work"
+    },
+    {
+      "id": "DATA-006",
+      "category": "data_integration",
+      "priority": "medium",
+      "title": "MetricsHealth Metrics Dashboard (Privacy-Preserving)",
+      "description": "Create a dedicated tab or view for TJ's work at MetricsHealth that pulls ONLY non-sensitive metrics: hours logged, projects completed, skills utilized. No client data, no revenue figures. Provides sense of professional progress without violating privacy constraints.",
+      "rationale": "USER.md explicitly flags MetricHealth as private and never to be discussed. However, tracking personal professional growth there is valuable. This balances privacy with self-awareness.",
+      "implementation": {
+        "data_source": "Manual entry or simple API that only exports: hours, project count, completed tasks",
+        "visualizations": ["Hours this week vs last", "Project completion rate", "Skill frequency"],
+        "privacy_guarantees": ["No client names", "No dollar amounts", "No proprietary info", "Local storage only"],
+        "access_control": "Require explicit enable in settings, default disabled"
+      },
+      "estimated_effort": "2.5 hours",
+      "impact": "Medium - Professional growth tracking without privacy risk"
     }
   ],
   "quick_wins": [
     {
-      "id": "QW-001",
-      "title": "Add 'Days to Home' click to edit",
-      "effort": "15 minutes",
-      "already_implemented": true,
-      "note": "Code shows onclick=\"editGoalDate()\" - verify this works"
+      "id": "QW-004",
+      "title": "Add 'Export All Data' button to footer",
+      "effort": "30 minutes",
+      "code": "Add button in footer that calls: const allData = {}; for(let i=0; i<localStorage.length; i++){const k=localStorage.key(i);allData[k]=localStorage.getItem(k);} downloadAsJSON(allData, 'pleiades-backup.json')"
     },
     {
-      "id": "QW-002", 
-      "title": "Fix Step and MiniMax models in LLM tracker",
-      "effort": "10 minutes",
-      "code": "Add {id:'step-3.5-flash', name:'Step 3.5 Flash', provider:'Step', ctx:32000, inCost:0.5, outCost:2, status:'online'} and MiniMax M2.5 to LLM_MODELS array"
-    },
-    {
-      "id": "QW-003",
-      "title": "Add Ctrl/Cmd+1-9 tab switching",
+      "id": "QW-005",
+      "title": "Show tooltips on command palette items",
       "effort": "20 minutes",
-      "code": "document.addEventListener('keydown', e => { if((e.metaKey||e.ctrlKey) && e.key>='1' && e.key<='9') switchTab(TABS[parseInt(e.key)-1]?.id); });"
+      "code": "Add title attribute or custom tooltip to .cmd-item showing the keywords and full description"
+    },
+    {
+      "id": "QW-006",
+      "title": "Add keyboard shortcut to focus search: /",
+      "effort": "15 minutes",
+      "code": "document.addEventListener('keydown', e => { if(e.key==='/' && !e.metaKey && !e.ctrlKey && e.target.tagName!=='INPUT' && e.target.tagName!=='TEXTAREA') { e.preventDefault(); document.getElementById('globalSearch').focus(); } });"
     }
   ],
   "creative_surprises": [
     {
-      "title": "The Curator Alert",
-      "concept": "When TJ hasn't created anything (tasks, notes, decisions) for 3+ days, show a subtle but increasing visual reminder of the Paintress Truth: 'The Curator approaches. Create to hold her at bay.'",
-      "implementation": "Track lastActivity timestamp. If now - lastActivity > 3 days, add CSS animation to logo (subtle pulsing red glow). After 7 days, show modal on load with quote and quick-actions to create something.",
-      "why": "Turns the Paintress mythos into a gentle accountability mechanism."
+      "title": "The Library Whisperer Badge",
+      "concept": "Gamification element for TJ's library work. Earn badges for: cataloging 100 items, helping a patron find exactly what they need, mastering a new system. The badge appears in the constellation visualization as a new node type: achievement.",
+      "implementation": "Add 'achievements' array to constellation data. Each achievement has icon, title, date earned, criteria. Display as small stars around the main constellation. First badge: 'First Day' earned when marking a meeting with Hamilton Library as completed.",
+      "why": "Brings joy to work that can feel invisible. Validating the day-to-day victories."
     },
     {
-      "title": "Constellation Visualization",
-      "concept": "Visualize TJ's network (Serena, Flora, Alex) as actual stars in the background. Serena = bright north star (grounding), Flora = warm nearby star (anchor), Alex = dim red dwarf (restricted).",
-      "implementation": "Add SVG constellation overlay to starfield. Serena pulses gently (stability), Flora glows warm (presence), Alex flickers occasionally but stays distant. Hover shows name and role.",
-      "why": "Makes the support network from USER.md visible and present in the interface."
+      "title": "Seasonal Constellation Shifts",
+      "concept": "The background starfield subtly changes with the seasons: winter shows Orion prominently, spring features Leo, summer has the Summer Triangle, autumn displays Pegasus. The stars TJ sees in the app mirror the stars he'd see outside in Barrie, Ontario.",
+      "implementation": "Use Date to determine season → load different star positions in the .stars CSS. Could use actual star catalog data simplified, or artistic representations. Add a 'What's in the sky tonight?' tooltip on the starfield.",
+      "why": "Connects digital space to physical place. Grounds TJ in his actual location."
     },
     {
-      "title": "90-Day Win Progress Ring",
-      "concept": "A circular progress indicator showing progress toward the 90-day win: 'Progress on: full-time job OR grad school OR permanent residency.'",
-      "implementation": "Add to dashboard metrics. Calculate based on: job applications sent, grad school apps submitted, PR documents filed. Each major milestone = 33%. Fill ring as progress is made.",
-      "why": "Visual representation of the most important goal from USER.md."
+      "title": "The Unsent Letter Draft",
+      "concept": "A special private space in Notes for letters TJ needs to write but may never send: to immigration officials who denied a visa, to family far away, to his future self. These are encrypted locally and marked with a special icon. A way to process emotion without it being 'productivity'.",
+      "implementation": "Add section in Notes with divider: '--- Unsent Letters ---'. Add simple XOR encryption with user's own passphrase. Visual indicator: sealed envelope icon. Not included in regular notes search unless specifically enabled.",
+      "why": "TJ's immigration stress needs an outlet that isn't task-oriented. This creates space for emotional processing within the system."
     }
   ]
 }
