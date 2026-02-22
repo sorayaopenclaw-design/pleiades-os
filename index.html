@@ -4103,9 +4103,14 @@ function renderNotesTab(el) {
 // INIT
 // ============================================
 async function boot() {
-  initNav();
-  initSearch();
-  initCommandPalette();
+  try {
+    console.log('[Boot] Starting...');
+    initNav();
+    console.log('[Boot] Nav initialized');
+    initSearch();
+    console.log('[Boot] Search initialized');
+    initCommandPalette();
+    console.log('[Boot] Command Palette initialized');
   
   // Generate Morning Report if it's after 5 AM
   const hour = new Date().getHours();
@@ -4148,8 +4153,13 @@ async function boot() {
     }).catch(()=>{});
   }
 
-  // Hide loader
-  setTimeout(()=>{const l=document.getElementById('loader');if(l){l.style.opacity='0';setTimeout(()=>l.remove(),500)}},600);
+    // Hide loader
+    setTimeout(()=>{const l=document.getElementById('loader');if(l){l.style.opacity='0';setTimeout(()=>l.remove(),500)}},600);
+    console.log('[Boot] Complete');
+  } catch (error) {
+    console.error('[Boot] Fatal error:', error);
+    document.getElementById('loader').innerHTML = '<div style="color:red;padding:2rem;">Error: ' + error.message + '</div>';
+  }
 }
 
 boot();
