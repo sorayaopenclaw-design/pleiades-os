@@ -937,9 +937,6 @@ class GoogleCalendar {
   }
 }
 
-// Global Calendar Instance
-const GCal = new GoogleCalendar();
-
 // ============================================
 // MORNING REPORT ENGINE
 // ============================================
@@ -1363,6 +1360,9 @@ const S = {
     return (S.getSize() / (1024 * 1024)).toFixed(2);
   }
 };
+
+// Global Calendar Instance (initialized AFTER S is defined)
+const GCal = new GoogleCalendar();
 
 // ============================================
 // NOTION DATABASE CONFIGURATION
