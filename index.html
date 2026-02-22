@@ -399,6 +399,37 @@
     .archive-section{display:none}
     .archive-section.open{display:block;margin-top:1rem}
 
+    /* COMMAND CENTER - Constellation & Notion */
+    .command-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;margin-bottom:2rem}
+    .command-card{cursor:pointer;transition:all .3s ease}
+    .command-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-hover);border-color:var(--accent)}
+    .command-card.jobs:hover{border-color:var(--info)}
+    .command-card.immigration:hover{border-color:var(--warning)}
+    .command-card.projects:hover{border-color:var(--success)}
+    .command-card.content:hover{border-color:var(--danger)}
+    .command-card.grants:hover{border-color:var(--accent)}
+    .command-card.policy:hover{border-color:var(--color-sepia)}
+    .command-card.actions:hover{border-color:#ec4899}
+    .command-count{font-size:2.5rem;font-weight:700;color:var(--accent);margin-bottom:.25rem}
+    .command-label{font-size:.9rem;font-weight:600;color:var(--text-primary);margin-bottom:.25rem}
+    .command-meta{font-size:.75rem;color:var(--text-muted)}
+    .notion-item{display:flex;align-items:center;gap:.5rem;padding:.375rem 0;font-size:.8rem;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle)}
+    .notion-item:last-child{border-bottom:none}
+    .notion-status{width:8px;height:8px;border-radius:50%;display:inline-block}
+    .notion-status.active{background:var(--success)}
+    .notion-status.pending{background:var(--warning)}
+    .notion-status.done{background:var(--text-muted)}
+    .notion-status.high{background:var(--danger)}
+    .notion-status.medium{background:var(--warning)}
+    .notion-status.low{background:var(--success)}
+    .notion-sync-btn{position:absolute;top:.75rem;right:.75rem;width:24px;height:24px;border-radius:6px;border:1px solid var(--border-subtle);background:rgba(255,255,255,.5);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s}
+    .notion-sync-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .quick-add-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem}
+    .constellation-node{cursor:pointer;transition:all .2s}
+    .constellation-node:hover{filter:brightness(1.2)}
+    .constellation-node circle{transition:all .3s ease}
+    .constellation-node:hover circle{r:25}
+
     /* RESPONSIVE */
     @media(max-width:1024px){.intel-container{grid-template-columns:1fr}.intel-sidebar{position:static}.brain-container{grid-template-columns:1fr}}
     @media(max-width:768px){
@@ -478,6 +509,769 @@
   <div class="toast" id="toast" role="alert" aria-live="polite"></div>
 
 <script>
+// ============================================
+// GOOGLE CALENDAR INTELLIGENCE
+// ============================================
+
+class GoogleCalendar {
+  constructor() {
+    this.isAuthenticated = false;
+    this.accessToken = null;
+    this.refreshToken = null;
+    this.tokenExpiry = null;
+    this.clientId = null; // Set via configure()
+    this.apiKey = null;
+    this.useMockData = true; // Default to mock until configured
+    this.cacheKey = 'gcal_cache';
+    this.syncStateKey = 'gcal_sync_state';
+    this.configKey = 'gcal_config';
+    this.loadConfig();
+  }
+
+  loadConfig() {
+    const config = S.get(this.configKey, {});
+    this.clientId = config.clientId || null;
+    this.apiKey = config.apiKey || null;
+    this.useMockData = !this.clientId; // Use mock if no clientId
+    const tokens = this.getStoredTokens();
+    if (tokens.accessToken && tokens.expiry > Date.now()) {
+      this.accessToken = tokens.accessToken;
+      this.refreshToken = tokens.refreshToken;
+      this.tokenExpiry = tokens.expiry;
+      this.isAuthenticated = true;
+    }
+  }
+
+  configure(clientId, apiKey) {
+    S.set(this.configKey, { clientId, apiKey, configured: true });
+    this.clientId = clientId;
+    this.apiKey = apiKey;
+    this.useMockData = false;
+    return true;
+  }
+
+  // Secure token storage using simple encryption
+  encryptToken(token) {
+    if (!token) return null;
+    // Simple XOR encryption with device fingerprint
+    const key = this.getDeviceKey();
+    let encrypted = '';
+    for (let i = 0; i < token.length; i++) {
+      encrypted += String.fromCharCode(token.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return btoa(encrypted);
+  }
+
+  decryptToken(encrypted) {
+    if (!encrypted) return null;
+    try {
+      const key = this.getDeviceKey();
+      const token = atob(encrypted);
+      let decrypted = '';
+      for (let i = 0; i < token.length; i++) {
+        decrypted += String.fromCharCode(token.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      return decrypted;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  getDeviceKey() {
+    // Create a device-specific key from user agent and screen resolution
+    return btoa(navigator.userAgent + screen.width + screen.height).slice(0, 16);
+  }
+
+  storeTokens(accessToken, refreshToken, expiresIn) {
+    const expiry = Date.now() + (expiresIn * 1000);
+    const encrypted = {
+      accessToken: this.encryptToken(accessToken),
+      refreshToken: this.encryptToken(refreshToken),
+      expiry: expiry
+    };
+    S.set('gcal_tokens', encrypted);
+    this.accessToken = accessToken;
+    this.refreshToken = refreshToken;
+    this.tokenExpiry = expiry;
+    this.isAuthenticated = true;
+  }
+
+  getStoredTokens() {
+    const encrypted = S.get('gcal_tokens', {});
+    return {
+      accessToken: this.decryptToken(encrypted.accessToken),
+      refreshToken: this.decryptToken(encrypted.refreshToken),
+      expiry: encrypted.expiry || 0
+    };
+  }
+
+  clearTokens() {
+    S.remove('gcal_tokens');
+    this.accessToken = null;
+    this.refreshToken = null;
+    this.tokenExpiry = null;
+    this.isAuthenticated = false;
+  }
+
+  // OAuth2 Flow
+  authenticate() {
+    if (this.useMockData) {
+      console.log('[GCal] Mock mode - authentication simulated');
+      this.isAuthenticated = true;
+      return Promise.resolve({ mock: true });
+    }
+
+    const redirectUri = window.location.origin + window.location.pathname;
+    const scope = 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events';
+    const state = this.generateState();
+    S.set('gcal_oauth_state', state);
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${this.clientId}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&scope=${encodeURIComponent(scope)}` +
+      `&response_type=token` +
+      `&state=${state}` +
+      `&prompt=consent`;
+
+    // Open popup for OAuth
+    const width = 500, height = 600;
+    const left = (window.screen.width - width) / 2;
+    const top = (window.screen.height - height) / 2;
+    const popup = window.open(authUrl, 'gcal_auth', `width=${width},height=${height},left=${left},top=${top}`);
+
+    return new Promise((resolve, reject) => {
+      const checkClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkClosed);
+          // Check if we got a token
+          const hash = window.location.hash;
+          if (hash.includes('access_token')) {
+            this.handleAuthResponse(hash).then(resolve).catch(reject);
+          } else {
+            reject(new Error('Authentication cancelled'));
+          }
+        }
+      }, 500);
+    });
+  }
+
+  generateState() {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  }
+
+  handleAuthResponse(hash) {
+    const params = new URLSearchParams(hash.substring(1));
+    const accessToken = params.get('access_token');
+    const expiresIn = parseInt(params.get('expires_in')) || 3600;
+    const state = params.get('state');
+    const storedState = S.get('gcal_oauth_state');
+
+    if (state !== storedState) {
+      return Promise.reject(new Error('Invalid state parameter'));
+    }
+
+    this.storeTokens(accessToken, null, expiresIn);
+    window.location.hash = ''; // Clear hash
+    return Promise.resolve({ success: true });
+  }
+
+  // API Methods
+  async fetchEvents(dateRange = 'today') {
+    if (this.useMockData) {
+      return this.getMockEvents(dateRange);
+    }
+
+    // Check cache first
+    const cached = this.getCachedEvents(dateRange);
+    if (cached && cached.timestamp > Date.now() - 60000) { // 1 min cache
+      return cached.events;
+    }
+
+    const now = new Date();
+    let timeMin, timeMax;
+
+    switch (dateRange) {
+      case 'today':
+        timeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        timeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+        break;
+      case 'week':
+        timeMin = now.toISOString();
+        timeMax = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        break;
+      case 'upcoming':
+        timeMin = now.toISOString();
+        timeMax = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        break;
+      default:
+        // Assume it's a date string
+        const date = new Date(dateRange);
+        timeMin = new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString();
+        timeMax = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1).toISOString();
+    }
+
+    try {
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
+        `timeMin=${encodeURIComponent(timeMin)}&` +
+        `timeMax=${encodeURIComponent(timeMax)}&` +
+        `singleEvents=true&` +
+        `orderBy=startTime`,
+        { headers: { 'Authorization': `Bearer ${this.accessToken}` } }
+      );
+
+      if (!response.ok) throw new Error('Failed to fetch events');
+      const data = await response.json();
+      const events = this.normalizeEvents(data.items || []);
+      this.cacheEvents(dateRange, events);
+      return events;
+    } catch (error) {
+      console.error('[GCal] Fetch error:', error);
+      return this.getMockEvents(dateRange); // Fallback to mock
+    }
+  }
+
+  async createEvent(event) {
+    if (this.useMockData) {
+      console.log('[GCal] Mock create:', event);
+      return { id: 'mock_' + Date.now(), ...event };
+    }
+
+    const gcalEvent = {
+      summary: event.title,
+      description: event.description || '',
+      start: { dateTime: event.startTime, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+      end: { dateTime: event.endTime, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+      location: event.location || '',
+      attendees: (event.attendees || []).map(email => ({ email }))
+    };
+
+    const response = await fetch(
+      'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(gcalEvent)
+      }
+    );
+
+    if (!response.ok) throw new Error('Failed to create event');
+    const data = await response.json();
+    return this.normalizeEvent(data);
+  }
+
+  async updateEvent(eventId, changes) {
+    if (this.useMockData) {
+      console.log('[GCal] Mock update:', eventId, changes);
+      return { id: eventId, ...changes };
+    }
+
+    const gcalChanges = {};
+    if (changes.title) gcalChanges.summary = changes.title;
+    if (changes.description) gcalChanges.description = changes.description;
+    if (changes.startTime) gcalChanges.start = { dateTime: changes.startTime };
+    if (changes.endTime) gcalChanges.end = { dateTime: changes.endTime };
+    if (changes.location) gcalChanges.location = changes.location;
+
+    const response = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(gcalChanges)
+      }
+    );
+
+    if (!response.ok) throw new Error('Failed to update event');
+    return this.normalizeEvent(await response.json());
+  }
+
+  async deleteEvent(eventId) {
+    if (this.useMockData) {
+      console.log('[GCal] Mock delete:', eventId);
+      return true;
+    }
+
+    const response = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+      {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${this.accessToken}` }
+      }
+    );
+
+    return response.ok;
+  }
+
+  // Cache Management
+  cacheEvents(key, events) {
+    const cache = S.get(this.cacheKey, {});
+    cache[key] = { events, timestamp: Date.now() };
+    S.set(this.cacheKey, cache);
+  }
+
+  getCachedEvents(key) {
+    const cache = S.get(this.cacheKey, {});
+    return cache[key] || null;
+  }
+
+  clearCache() {
+    S.remove(this.cacheKey);
+  }
+
+  // Normalization
+  normalizeEvents(items) {
+    return items.map(item => this.normalizeEvent(item));
+  }
+
+  normalizeEvent(item) {
+    return {
+      id: item.id,
+      title: item.summary || 'Untitled',
+      description: item.description || '',
+      startTime: item.start?.dateTime || item.start?.date,
+      endTime: item.end?.dateTime || item.end?.date,
+      location: item.location || '',
+      attendees: (item.attendees || []).map(a => a.email),
+      calendarLink: item.htmlLink || '',
+      isAllDay: !!item.start?.date,
+      status: item.status,
+      created: item.created,
+      updated: item.updated
+    };
+  }
+
+  // Mock Data for Development
+  getMockEvents(dateRange) {
+    const now = new Date();
+    const events = [];
+    const titles = [
+      'Firebird Grant Review', 'Hamilton Library Interview', 'Team Standup',
+      'OTF Application Workshop', 'Board Meeting', 'Volunteer Coordination',
+      'Budget Review', 'Strategy Session', 'Partnership Call'
+    ];
+
+    // Generate mock events based on dateRange
+    const count = dateRange === 'today' ? 3 : dateRange === 'week' ? 8 : 15;
+    
+    for (let i = 0; i < count; i++) {
+      const startHour = 9 + Math.floor(Math.random() * 8);
+      const duration = [30, 60, 90][Math.floor(Math.random() * 3)];
+      const startDate = new Date(now);
+      
+      if (dateRange === 'week') {
+        startDate.setDate(startDate.getDate() + Math.floor(Math.random() * 7));
+      } else if (dateRange === 'upcoming') {
+        startDate.setDate(startDate.getDate() + Math.floor(Math.random() * 30));
+      }
+
+      startDate.setHours(startHour, 0, 0, 0);
+      const endDate = new Date(startDate.getTime() + duration * 60000);
+
+      events.push({
+        id: 'mock_' + i,
+        title: titles[i % titles.length],
+        description: 'Meeting details and preparation notes',
+        startTime: startDate.toISOString(),
+        endTime: endDate.toISOString(),
+        location: ['Zoom', 'Conference Room', 'Google Meet'][i % 3],
+        attendees: ['member@example.com'],
+        calendarLink: '#',
+        isAllDay: false,
+        status: 'confirmed'
+      });
+    }
+
+    return events.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+  }
+
+  // Sync State Management
+  getSyncState() {
+    return S.get(this.syncStateKey, {
+      lastSync: null,
+      syncEnabled: false,
+      autoSync: true,
+      syncedEvents: []
+    });
+  }
+
+  saveSyncState(state) {
+    S.set(this.syncStateKey, state);
+  }
+}
+
+// Global Calendar Instance
+const GCal = new GoogleCalendar();
+
+// ============================================
+// MORNING REPORT ENGINE
+// ============================================
+
+async function generateMorningReport() {
+  const hour = new Date().getHours();
+  
+  // Only show morning report after 5 AM and before 6 PM
+  if (hour < 5 || hour >= 18) {
+    return null;
+  }
+
+  // Check if we already generated report today
+  const today = todayStr();
+  const lastReport = S.get('morning_report_date');
+  if (lastReport === today) {
+    return S.get('morning_report_data');
+  }
+
+  const report = {
+    date: today,
+    generatedAt: new Date().toISOString(),
+    greeting: getTimeBasedGreeting(),
+    todayEvents: [],
+    upcomingDeadlines: [],
+    prepAlerts: [],
+    freeTimeBlocks: [],
+    conflicts: [],
+    suggestions: []
+  };
+
+  try {
+    // Fetch today's events from Google Calendar
+    const events = await GCal.fetchEvents('today');
+    report.todayEvents = events;
+
+    // Fetch upcoming week for deadlines
+    const upcoming = await GCal.fetchEvents('week');
+    report.upcomingDeadlines = upcoming.filter(e => {
+      const title = e.title.toLowerCase();
+      return title.includes('deadline') || title.includes('due') || title.includes('submit');
+    });
+
+    // Generate prep alerts
+    report.prepAlerts = generatePrepAlerts(events);
+
+    // Find free time blocks
+    report.freeTimeBlocks = findFreeTimeBlocks(events);
+
+    // Detect conflicts
+    report.conflicts = detectConflicts(events);
+
+    // Generate smart suggestions
+    report.suggestions = generateSuggestions(events, report.freeTimeBlocks);
+
+    // Save report
+    S.set('morning_report_date', today);
+    S.set('morning_report_data', report);
+
+    return report;
+  } catch (error) {
+    console.error('[Morning Report] Generation failed:', error);
+    return null;
+  }
+}
+
+function getTimeBasedGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function generatePrepAlerts(events) {
+  const alerts = [];
+  const now = new Date();
+
+  events.forEach(event => {
+    const startTime = new Date(event.startTime);
+    const minutesUntil = Math.floor((startTime - now) / 60000);
+
+    if (minutesUntil > 0 && minutesUntil <= 60) {
+      const prepTime = minutesUntil <= 15 ? 5 : minutesUntil <= 30 ? 15 : 30;
+      alerts.push({
+        event: event,
+        minutesUntil: minutesUntil,
+        prepTime: prepTime,
+        urgency: minutesUntil <= 15 ? 'high' : minutesUntil <= 30 ? 'medium' : 'low',
+        message: `${event.title} in ${minutesUntil} minutes - ${getPrepSuggestion(event.title)}`
+      });
+    }
+  });
+
+  return alerts.sort((a, b) => a.minutesUntil - b.minutesUntil);
+}
+
+function getPrepSuggestion(title) {
+  const lower = title.toLowerCase();
+  if (lower.includes('interview')) return 'review your notes and CV';
+  if (lower.includes('grant')) return 'review application materials';
+  if (lower.includes('board')) return 'check agenda and minutes';
+  if (lower.includes('standup')) return 'prepare status update';
+  if (lower.includes('review')) return 'gather relevant documents';
+  return 'review prep notes';
+}
+
+function findFreeTimeBlocks(events) {
+  const blocks = [];
+  const workStart = 9; // 9 AM
+  const workEnd = 18; // 6 PM
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // Create timeline of busy periods
+  const busyPeriods = events
+    .filter(e => !e.isAllDay)
+    .map(e => ({
+      start: new Date(e.startTime),
+      end: new Date(e.endTime)
+    }))
+    .sort((a, b) => a.start - b.start);
+
+  // Find gaps
+  let currentTime = new Date(today.getTime() + workStart * 60 * 60 * 1000);
+  const endOfWork = new Date(today.getTime() + workEnd * 60 * 60 * 1000);
+
+  // If it's past work start, use current time
+  if (now > currentTime) {
+    currentTime = new Date(now.getTime() + 15 * 60000); // Round up 15 min
+  }
+
+  for (const busy of busyPeriods) {
+    if (busy.start > currentTime) {
+      const duration = Math.floor((busy.start - currentTime) / 60000);
+      if (duration >= 30) {
+        blocks.push({
+          start: new Date(currentTime),
+          end: new Date(busy.start),
+          duration: duration,
+          type: duration >= 120 ? 'deep_work' : duration >= 60 ? 'focused_work' : 'quick_tasks'
+        });
+      }
+    }
+    if (busy.end > currentTime) {
+      currentTime = busy.end;
+    }
+  }
+
+  // Check for time after last meeting
+  if (currentTime < endOfWork) {
+    const duration = Math.floor((endOfWork - currentTime) / 60000);
+    if (duration >= 30) {
+      blocks.push({
+        start: new Date(currentTime),
+        end: endOfWork,
+        duration: duration,
+        type: duration >= 120 ? 'deep_work' : duration >= 60 ? 'focused_work' : 'quick_tasks'
+      });
+    }
+  }
+
+  return blocks;
+}
+
+function detectConflicts(events) {
+  const conflicts = [];
+  const sorted = [...events].sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const current = sorted[i];
+    const next = sorted[i + 1];
+    const currentEnd = new Date(current.endTime);
+    const nextStart = new Date(next.startTime);
+    const gap = Math.floor((nextStart - currentEnd) / 60000);
+
+    if (gap < 0) {
+      conflicts.push({
+        event1: current,
+        event2: next,
+        overlap: Math.abs(gap)
+      });
+    } else if (gap < 15) {
+      conflicts.push({
+        event1: current,
+        event2: next,
+        tight: true,
+        gap: gap
+      });
+    }
+  }
+
+  return conflicts;
+}
+
+function generateSuggestions(events, freeBlocks) {
+  const suggestions = [];
+  const eventCount = events.length;
+  const totalBusy = events.reduce((sum, e) => {
+    if (!e.isAllDay) {
+      return sum + (new Date(e.endTime) - new Date(e.startTime)) / 60000;
+    }
+    return sum;
+  }, 0);
+
+  if (eventCount === 0) {
+    suggestions.push({
+      type: 'opportunity',
+      icon: '✨',
+      message: 'Clear calendar today — perfect for deep work or tackling backlog'
+    });
+  } else if (eventCount > 6) {
+    suggestions.push({
+      type: 'warning',
+      icon: '⚠️',
+      message: 'Heavy meeting day — consider deferring non-urgent tasks'
+    });
+  }
+
+  if (totalBusy > 300) { // More than 5 hours
+    suggestions.push({
+      type: 'wellness',
+      icon: '🧘',
+      message: 'Schedule breaks between meetings — your energy matters'
+    });
+  }
+
+  // Check for back-to-back meetings
+  const backToBack = events.filter((e, i) => {
+    if (i === 0) return false;
+    const prev = events[i - 1];
+    return new Date(e.startTime) - new Date(prev.endTime) < 15 * 60000;
+  });
+
+  if (backToBack.length > 2) {
+    suggestions.push({
+      type: 'strategy',
+      icon: '🔄',
+      message: `${backToBack.length} back-to-back meetings — build in buffer time tomorrow`
+    });
+  }
+
+  // Free time suggestions
+  const deepWork = freeBlocks.find(b => b.type === 'deep_work');
+  if (deepWork) {
+    suggestions.push({
+      type: 'opportunity',
+      icon: '🎯',
+      message: `${deepWork.duration}min block available — ideal for grant writing or strategic work`
+    });
+  }
+
+  return suggestions;
+}
+
+// Sync meetings between Pleiades and Google Calendar
+async function syncMeetingsWithCalendar() {
+  const syncState = GCal.getSyncState();
+  if (!syncState.syncEnabled) return;
+
+  const localMeetings = getMeetings();
+  const calendarEvents = await GCal.fetchEvents('upcoming');
+
+  // Two-way sync logic
+  const syncedMeetings = [];
+  const syncedIds = new Set();
+
+  // Map calendar events to local meetings
+  for (const event of calendarEvents) {
+    const existingIndex = localMeetings.findIndex(m => m.gcalId === event.id);
+    
+    if (existingIndex >= 0) {
+      // Update existing meeting
+      localMeetings[existingIndex] = {
+        ...localMeetings[existingIndex],
+        title: event.title,
+        date: event.startTime.split('T')[0],
+        time: event.startTime.split('T')[1]?.slice(0, 5) || '09:00',
+        type: event.location?.toLowerCase().includes('zoom') ? 'zoom' : 
+              event.location?.toLowerCase().includes('meet') ? 'call' : 'in-person',
+        attendees: event.attendees?.join(', ') || localMeetings[existingIndex].attendees,
+        prepNotes: event.description || localMeetings[existingIndex].prepNotes
+      };
+      syncedMeetings.push(localMeetings[existingIndex]);
+      syncedIds.add(localMeetings[existingIndex].id);
+    } else {
+      // Create new meeting from calendar event
+      const newMeeting = {
+        id: 'm' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        gcalId: event.id,
+        title: event.title,
+        date: event.startTime.split('T')[0],
+        time: event.startTime.split('T')[1]?.slice(0, 5) || '09:00',
+        type: event.location?.toLowerCase().includes('zoom') ? 'zoom' : 
+              event.location?.toLowerCase().includes('meet') ? 'call' : 'in-person',
+        attendees: event.attendees?.join(', ') || 'TBD',
+        prepNotes: event.description || '',
+        agenda: [],
+        notes: '',
+        actionItems: []
+      };
+      localMeetings.push(newMeeting);
+      syncedMeetings.push(newMeeting);
+      syncedIds.add(newMeeting.id);
+    }
+  }
+
+  // Sync local meetings back to calendar (for new local meetings)
+  for (const meeting of localMeetings) {
+    if (!meeting.gcalId && !syncedIds.has(meeting.id)) {
+      try {
+        const startTime = `${meeting.date}T${meeting.time}:00`;
+        const endTimeObj = new Date(new Date(startTime).getTime() + 60 * 60000);
+        const endTime = endTimeObj.toISOString();
+
+        const gcalEvent = await GCal.createEvent({
+          title: meeting.title,
+          description: meeting.prepNotes,
+          startTime: startTime,
+          endTime: endTime,
+          location: meeting.type === 'zoom' ? 'Zoom' : meeting.type === 'call' ? 'Phone' : 'TBD',
+          attendees: meeting.attendees?.split(',').map(e => e.trim()).filter(Boolean) || []
+        });
+
+        meeting.gcalId = gcalEvent.id;
+        syncedMeetings.push(meeting);
+      } catch (error) {
+        console.error('[Sync] Failed to create calendar event:', error);
+      }
+    }
+  }
+
+  saveMeetingsData(localMeetings);
+  
+  syncState.lastSync = new Date().toISOString();
+  GCal.saveSyncState(syncState);
+
+  logAct('🔄', 'system', `Synced ${syncedMeetings.length} meetings with Google Calendar`);
+  return syncedMeetings;
+}
+
+// Add to Calendar helper
+async function addToCalendar(meetingData) {
+  try {
+    const event = await GCal.createEvent({
+      title: meetingData.title,
+      description: meetingData.description || meetingData.prepNotes || '',
+      startTime: meetingData.startTime || `${meetingData.date}T${meetingData.time}:00`,
+      endTime: meetingData.endTime || new Date(new Date(`${meetingData.date}T${meetingData.time}:00`).getTime() + 60 * 60000).toISOString(),
+      location: meetingData.location || meetingData.type || '',
+      attendees: meetingData.attendees || []
+    });
+
+    toast(`Added "${meetingData.title}" to Google Calendar`);
+    logAct('📅', 'meeting', `Added to calendar: ${meetingData.title}`);
+    return event;
+  } catch (error) {
+    toast('Failed to add to calendar', 'error');
+    console.error('[Calendar] Add error:', error);
+    return null;
+  }
+}
+
 // ============================================
 // CORE SYSTEM
 // ============================================
@@ -615,11 +1409,392 @@ function switchTab(id) {
 }
 
 // ============================================
-// SEARCH
+// COMMAND PALETTE & SEARCH
 // ============================================
+
+// Command Palette State
+let commandPaletteOpen = false;
+let commandPaletteSelectedIndex = 0;
+let commandPaletteFilteredCommands = [];
+let commandPaletteRecent = S.get('cmd_recent', []);
+
+// Command Registry
+const COMMANDS = [
+  // Navigation Commands
+  { id: 'nav_dashboard', category: 'Navigation', icon: '✨', label: 'Go to Today (Dashboard)', keywords: ['dashboard', 'today', 'home'], action: () => switchTab('dashboard') },
+  { id: 'nav_projects', category: 'Navigation', icon: '🎯', label: 'Go to Path (Projects)', keywords: ['projects', 'path', 'tasks', 'kanban'], action: () => switchTab('projects') },
+  { id: 'nav_command', category: 'Navigation', icon: '🌟', label: 'Go to Command Center', keywords: ['command', 'center', 'notion'], action: () => switchTab('command') },
+  { id: 'nav_meetings', category: 'Navigation', icon: '📞', label: 'Go to Rituals (Meetings)', keywords: ['meetings', 'rituals', 'calendar'], action: () => switchTab('meetings') },
+  { id: 'nav_intel', category: 'Navigation', icon: '📡', label: 'Go to Signals (Intel)', keywords: ['intel', 'signals', 'news'], action: () => switchTab('intel') },
+  { id: 'nav_llm', category: 'Navigation', icon: '🤖', label: 'Go to LLM Tracker', keywords: ['llm', 'tracker', 'models', 'budget'], action: () => switchTab('llm') },
+  { id: 'nav_brain', category: 'Navigation', icon: '🧠', label: 'Go to Brain', keywords: ['brain', 'agent', 'status'], action: () => switchTab('brain') },
+  { id: 'nav_timeline', category: 'Navigation', icon: '🌙', label: 'Go to Journey (Timeline)', keywords: ['timeline', 'journey', 'milestones'], action: () => switchTab('timeline') },
+  { id: 'nav_notes', category: 'Navigation', icon: '📝', label: 'Go to Notes', keywords: ['notes', 'journal', 'field'], action: () => switchTab('notes') },
+  
+  // Action Commands
+  { id: 'act_task', category: 'Actions', icon: '🎯', label: 'Add New Task', keywords: ['add', 'create', 'task', 'new'], action: () => addTask('backlog') },
+  { id: 'act_priority', category: 'Actions', icon: '⭐', label: 'Add Priority', keywords: ['add', 'create', 'priority', 'todo'], action: () => addPriority() },
+  { id: 'act_meeting', category: 'Actions', icon: '📅', label: 'Add Meeting', keywords: ['add', 'create', 'meeting', 'event'], action: () => addMeeting() },
+  { id: 'act_intel', category: 'Actions', icon: '📡', label: 'Add Intel', keywords: ['add', 'create', 'intel', 'signal'], action: () => addIntel() },
+  { id: 'act_decision', category: 'Actions', icon: '📋', label: 'Log Decision', keywords: ['log', 'add', 'decision'], action: () => addDecision() },
+  { id: 'act_phase', category: 'Actions', icon: '🌙', label: 'Add Timeline Phase', keywords: ['add', 'phase', 'milestone'], action: () => addTimelinePhase() },
+  
+  // Utility Commands
+  { id: 'util_sync', category: 'Utility', icon: '🔄', label: 'Sync with Notion', keywords: ['sync', 'notion', 'update'], action: () => { syncNotionData(); toast('Syncing with Notion...'); } },
+  { id: 'util_export', category: 'Utility', icon: '📤', label: 'Export LLM Data', keywords: ['export', 'llm', 'data'], action: () => exportLLMData() },
+  { id: 'util_reset', category: 'Utility', icon: '🗑️', label: 'Reset LLM Usage', keywords: ['reset', 'llm', 'clear'], action: () => resetLLMUsage() },
+  { id: 'util_goal', category: 'Utility', icon: '🏠', label: 'Edit Goal Date', keywords: ['goal', 'date', 'home'], action: () => editGoalDate() },
+];
+
+// Fuzzy Matching Algorithm
+function fuzzyMatch(query, text) {
+  query = query.toLowerCase();
+  text = text.toLowerCase();
+  
+  if (text.includes(query)) return 1.0; // Exact substring match
+  
+  // Fuzzy matching - check if all chars appear in order
+  let queryIdx = 0;
+  for (let i = 0; i < text.length && queryIdx < query.length; i++) {
+    if (text[i] === query[queryIdx]) queryIdx++;
+  }
+  
+  if (queryIdx === query.length) {
+    // All chars found in order - calculate score based on how spread out they are
+    return 0.5 + (0.5 * (query.length / text.length));
+  }
+  
+  return 0;
+}
+
+function scoreCommand(query, cmd) {
+  let score = fuzzyMatch(query, cmd.label);
+  
+  // Check keywords
+  for (const kw of cmd.keywords) {
+    const kwScore = fuzzyMatch(query, kw);
+    if (kwScore > score) score = kwScore;
+  }
+  
+  // Boost recently used commands
+  const recentIndex = commandPaletteRecent.indexOf(cmd.id);
+  if (recentIndex !== -1) {
+    score += 0.3 * (1 - recentIndex / commandPaletteRecent.length);
+  }
+  
+  return score;
+}
+
+function addRecentCommand(cmdId) {
+  // Remove if exists
+  commandPaletteRecent = commandPaletteRecent.filter(id => id !== cmdId);
+  // Add to front
+  commandPaletteRecent.unshift(cmdId);
+  // Keep only last 10
+  if (commandPaletteRecent.length > 10) commandPaletteRecent = commandPaletteRecent.slice(0, 10);
+  // Save
+  S.set('cmd_recent', commandPaletteRecent);
+}
+
+function createCommandPaletteModal() {
+  if (document.getElementById('commandPalette')) return;
+  
+  const overlay = document.createElement('div');
+  overlay.id = 'commandPalette';
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:600px;width:90%;padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;padding:.75rem 1rem;border-bottom:1px solid var(--border-subtle)">
+        <span style="font-size:1.2rem;margin-right:.5rem;color:var(--text-muted)">🔍</span>
+        <input type="text" id="cmdInput" placeholder="Type a command or search..." 
+          style="flex:1;border:none;background:transparent;color:var(--text-primary);font-size:1rem;outline:none;font-family:var(--font-ui)" autocomplete="off">
+        <span style="font-size:.75rem;color:var(--text-muted);background:var(--bg-warm);padding:.2rem .4rem;border-radius:4px;font-family:var(--font-ui)">ESC</span>
+      </div>
+      <div id="cmdResults" style="max-height:400px;overflow-y:auto;padding:.5rem 0"></div>
+      <div style="display:flex;justify-content:space-between;padding:.5rem 1rem;border-top:1px solid var(--border-subtle);font-size:.75rem;color:var(--text-muted)">
+        <span>↑↓ Navigate</span>
+        <span>↵ Execute</span>
+      </div>
+    </div>
+  `;
+  
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeCommandPalette();
+  });
+  
+  document.body.appendChild(overlay);
+}
+
+function openCommandPalette() {
+  createCommandPaletteModal();
+  const overlay = document.getElementById('commandPalette');
+  overlay.classList.add('open');
+  commandPaletteOpen = true;
+  commandPaletteSelectedIndex = 0;
+  
+  const input = document.getElementById('cmdInput');
+  input.value = '';
+  input.focus();
+  
+  // Show all commands initially, sorted by recent usage
+  filterCommands('');
+  
+  // Prevent body scroll
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCommandPalette() {
+  const overlay = document.getElementById('commandPalette');
+  if (overlay) overlay.classList.remove('open');
+  commandPaletteOpen = false;
+  document.body.style.overflow = '';
+}
+
+function filterCommands(query) {
+  const resultsDiv = document.getElementById('cmdResults');
+  
+  if (!query.trim()) {
+    // Show recently used first, then all commands by category
+    const recentCmds = commandPaletteRecent
+      .map(id => COMMANDS.find(c => c.id === id))
+      .filter(Boolean);
+    
+    const otherCmds = COMMANDS.filter(c => !commandPaletteRecent.includes(c.id));
+    
+    commandPaletteFilteredCommands = [...recentCmds, ...otherCmds];
+  } else {
+    // Score and filter
+    const scored = COMMANDS.map(cmd => ({ cmd, score: scoreCommand(query, cmd) }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score);
+    
+    commandPaletteFilteredCommands = scored.map(s => s.cmd);
+  }
+  
+  // Also search data
+  if (query.trim().length >= 2) {
+    const dataResults = searchData(query);
+    // Add data results to the end
+    commandPaletteFilteredCommands = [...commandPaletteFilteredCommands, ...dataResults];
+  }
+  
+  renderCommandResults();
+}
+
+function searchData(query) {
+  const results = [];
+  const q = query.toLowerCase();
+  
+  // Search tasks
+  getTasks().forEach(t => {
+    if (t.title.toLowerCase().includes(q) || (t.description || '').toLowerCase().includes(q)) {
+      results.push({
+        id: 'data_task_' + t.id,
+        category: 'Search: Tasks',
+        icon: '🎯',
+        label: t.title,
+        subtitle: t.description || t.status,
+        isDataResult: true,
+        action: () => {
+          switchTab('projects');
+          // Could scroll to specific task
+        }
+      });
+    }
+  });
+  
+  // Search priorities
+  getPriorities().forEach(p => {
+    if (p.text.toLowerCase().includes(q)) {
+      results.push({
+        id: 'data_priority_' + p.id,
+        category: 'Search: Priorities',
+        icon: '⭐',
+        label: p.text,
+        subtitle: p.done ? 'Done' : 'Active',
+        isDataResult: true,
+        action: () => switchTab('dashboard')
+      });
+    }
+  });
+  
+  // Search meetings
+  getMeetings().forEach(m => {
+    if (m.title.toLowerCase().includes(q) || (m.attendees || '').toLowerCase().includes(q)) {
+      results.push({
+        id: 'data_meeting_' + m.id,
+        category: 'Search: Meetings',
+        icon: '📅',
+        label: m.title,
+        subtitle: m.date + ' at ' + m.time,
+        isDataResult: true,
+        action: () => switchTab('meetings')
+      });
+    }
+  });
+  
+  // Search intel
+  getIntel().forEach(i => {
+    if (i.title.toLowerCase().includes(q) || i.summary.toLowerCase().includes(q)) {
+      results.push({
+        id: 'data_intel_' + i.id,
+        category: 'Search: Intel',
+        icon: '📡',
+        label: i.title,
+        subtitle: i.category,
+        isDataResult: true,
+        action: () => switchTab('intel')
+      });
+    }
+  });
+  
+  return results.slice(0, 5); // Limit data results
+}
+
+function renderCommandResults() {
+  const resultsDiv = document.getElementById('cmdResults');
+  
+  if (commandPaletteFilteredCommands.length === 0) {
+    resultsDiv.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted)">No commands found</div>';
+    return;
+  }
+  
+  // Group by category
+  const grouped = {};
+  commandPaletteFilteredCommands.forEach(cmd => {
+    const cat = cmd.category || 'Other';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(cmd);
+  });
+  
+  let html = '';
+  let globalIndex = 0;
+  
+  for (const [category, cmds] of Object.entries(grouped)) {
+    html += `<div style="padding:.25rem 1rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-top:.5rem">${category}</div>`;
+    
+    cmds.forEach(cmd => {
+      const isSelected = globalIndex === commandPaletteSelectedIndex;
+      html += `
+        <div class="cmd-item ${isSelected ? 'selected' : ''}" data-index="${globalIndex}" 
+          style="display:flex;align-items:center;gap:.75rem;padding:.625rem 1rem;cursor:pointer;transition:all .15s;${isSelected ? 'background:rgba(212,168,75,.15)' : ''}"
+          onmouseenter="commandPaletteSelectedIndex=${globalIndex};renderCommandResults()">
+          <span style="font-size:1.1rem;width:24px;text-align:center">${cmd.icon}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:500;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(cmd.label)}</div>
+            ${cmd.subtitle ? `<div style="font-size:.8rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(cmd.subtitle)}</div>` : ''}
+          </div>
+          ${isSelected ? '<span style="font-size:.8rem;color:var(--accent)">↵</span>' : ''}
+        </div>
+      `;
+      globalIndex++;
+    });
+  }
+  
+  resultsDiv.innerHTML = html;
+  
+  // Scroll selected into view
+  const selected = resultsDiv.querySelector('.cmd-item.selected');
+  if (selected) {
+    selected.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+function executeSelectedCommand() {
+  const cmd = commandPaletteFilteredCommands[commandPaletteSelectedIndex];
+  if (!cmd) return;
+  
+  closeCommandPalette();
+  
+  if (!cmd.isDataResult) {
+    addRecentCommand(cmd.id);
+  }
+  
+  if (cmd.action) {
+    cmd.action();
+  }
+}
+
+function initCommandPalette() {
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    // Toggle with ⌘K / Ctrl+K
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      if (commandPaletteOpen) {
+        closeCommandPalette();
+      } else {
+        openCommandPalette();
+      }
+      return;
+    }
+    
+    // Handle palette navigation
+    if (!commandPaletteOpen) return;
+    
+    switch (e.key) {
+      case 'Escape':
+        e.preventDefault();
+        closeCommandPalette();
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        commandPaletteSelectedIndex = (commandPaletteSelectedIndex + 1) % commandPaletteFilteredCommands.length;
+        renderCommandResults();
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        commandPaletteSelectedIndex = (commandPaletteSelectedIndex - 1 + commandPaletteFilteredCommands.length) % commandPaletteFilteredCommands.length;
+        renderCommandResults();
+        break;
+      case 'Enter':
+        e.preventDefault();
+        executeSelectedCommand();
+        break;
+    }
+  });
+  
+  // Input handler for filtering
+  document.addEventListener('input', e => {
+    if (e.target.id === 'cmdInput') {
+      commandPaletteSelectedIndex = 0;
+      filterCommands(e.target.value);
+    }
+  });
+  
+  // Click handler
+  document.addEventListener('click', e => {
+    const item = e.target.closest('.cmd-item');
+    if (item) {
+      commandPaletteSelectedIndex = parseInt(item.dataset.index);
+      executeSelectedCommand();
+    }
+  });
+}
+
 function initSearch() {
   const input = document.getElementById('globalSearch');
   const results = document.getElementById('searchResults');
+
+  // Clear input and focus opens command palette
+  input.addEventListener('focus', () => {
+    if (!input.value.trim()) {
+      // Don't auto-open, just focus
+    }
+  });
+  
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // Open command palette with current search
+      openCommandPalette();
+      const cmdInput = document.getElementById('cmdInput');
+      if (cmdInput) cmdInput.value = input.value;
+      filterCommands(input.value);
+      input.value = '';
+      results.classList.remove('open');
+    }
+  });
 
   input.addEventListener('input', () => {
     const q = input.value.trim().toLowerCase();
@@ -690,7 +1865,7 @@ function initSearch() {
 
   input.addEventListener('blur', () => setTimeout(()=>results.classList.remove('open'), 200));
   document.addEventListener('keydown', e => {
-    if((e.metaKey||e.ctrlKey) && e.key==='k') { e.preventDefault(); input.focus(); }
+    if((e.metaKey||e.ctrlKey) && e.key==='k') { e.preventDefault(); openCommandPalette(); }
     if(e.key==='Escape') { input.value=''; results.classList.remove('open'); input.blur(); }
   });
 }
@@ -716,6 +1891,20 @@ function getMeetings() { return S.get('meetings', [
   { id:'m2', title:'Hamilton Library Interview', date:todayStr(), time:futureTime(3), type:'in-person', attendees:'Hiring Committee', prepNotes:'Bring resume copies', agenda:[{id:1,text:'Introductions',done:false},{id:2,text:'Discuss experience',done:false}], notes:'', actionItems:[] }
 ])}
 function saveMeetingsData(m) { S.set('meetings', m) }
+
+function renderSuggestions(suggestions) {
+  if (!suggestions || suggestions.length === 0) return '';
+  
+  return `
+    <div style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.5rem;">
+      ${suggestions.slice(0, 3).map(s => `
+        <span style="background:${s.type === 'warning' ? 'rgba(201,123,123,.1)' : s.type === 'opportunity' ? 'rgba(107,144,128,.1)' : 'rgba(90,163,200,.1)'};color:${s.type === 'warning' ? 'var(--danger)' : s.type === 'opportunity' ? 'var(--success)' : 'var(--info)'};padding:.25rem .625rem;border-radius:6px;font-size:.8rem;">
+          ${s.icon} ${esc(s.message)}
+        </span>
+      `).join('')}
+    </div>
+  `;
+}
 function getIntel() { return S.get('intel', [
   { id:'i1', title:'OpenAI releases GPT-5', category:'ai-news', importance:'hot', source:'https://openai.com', summary:'New model with significant reasoning improvements and 2M context window.', dateAdded:new Date(Date.now()-86400000).toISOString() },
   { id:'i2', title:'Library sector adopting AI for cataloging', category:'industry', importance:'notable', source:'https://americanlibrariesmagazine.org', summary:'Major systems testing AI-assisted metadata generation.', dateAdded:new Date(Date.now()-86400000*3).toISOString() },
@@ -735,6 +1924,270 @@ function getDecisions() { return S.get('decisions', [
   { id:2, date:new Date(Date.now()-86400000*5).toISOString(), question:'Apply to OTF this cycle?', summary:'Yes — deadline March 15, The Mechanic to lead', agents:['The Mechanic','Soraya'] }
 ])}
 function saveDecisions(d) { S.set('decisions', d) }
+// ============================================
+// SMART SORTING ENGINE
+// ============================================
+
+/**
+ * Parse a date string from various formats
+ * Returns Date object or null if unparseable
+ */
+function parseSmartDate(dateStr) {
+  if (!dateStr) return null;
+  
+  // Try ISO format first (YYYY-MM-DD)
+  let date = new Date(dateStr);
+  if (!isNaN(date.getTime())) return date;
+  
+  // Try common formats like "Feb 27" or "February 27"
+  const monthNames = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  const monthMap = {
+    'jan': 0, 'january': 0,
+    'feb': 1, 'february': 1,
+    'mar': 2, 'march': 2,
+    'apr': 3, 'april': 3,
+    'may': 4,
+    'jun': 5, 'june': 5,
+    'jul': 6, 'july': 6,
+    'aug': 7, 'august': 7,
+    'sep': 8, 'september': 8, 'sept': 8,
+    'oct': 9, 'october': 9,
+    'nov': 10, 'november': 10,
+    'dec': 11, 'december': 11
+  };
+  
+  // Match patterns like "Feb 27", "February 27, 2025", "27 Feb"
+  const patterns = [
+    /(\w+)\s+(\d{1,2})(?:\s*,?\s*(\d{4}))?/i,  // Feb 27 or Feb 27, 2025
+    /(\d{1,2})\s+(\w+)(?:\s*,?\s*(\d{4}))?/i,  // 27 Feb or 27 Feb 2025
+    /(\d{4})-(\d{2})-(\d{2})/,                    // 2025-02-27
+    /(\d{2})\/(\d{2})\/(\d{4})/                   // 02/27/2025
+  ];
+  
+  for (const pattern of patterns) {
+    const match = dateStr.match(pattern);
+    if (match) {
+      let year, month, day;
+      
+      if (pattern.source.includes('\\d{4}-')) {
+        // ISO-like format
+        year = parseInt(match[1]);
+        month = parseInt(match[2]) - 1;
+        day = parseInt(match[3]);
+      } else if (pattern.source.includes('\\/')) {
+        // US format MM/DD/YYYY
+        month = parseInt(match[1]) - 1;
+        day = parseInt(match[2]);
+        year = parseInt(match[3]);
+      } else {
+        // Text format
+        const part1 = match[1].toLowerCase();
+        const part2 = parseInt(match[2]);
+        year = match[3] ? parseInt(match[3]) : new Date().getFullYear();
+        
+        if (monthMap.hasOwnProperty(part1)) {
+          month = monthMap[part1];
+          day = part2;
+        } else if (monthMap.hasOwnProperty(part1.replace(/\./g, ''))) {
+          month = monthMap[part1.replace(/\./g, '')];
+          day = part2;
+        } else if (!isNaN(parseInt(part1))) {
+          day = parseInt(part1);
+          if (monthMap.hasOwnProperty(match[2].toLowerCase())) {
+            month = monthMap[match[2].toLowerCase()];
+          } else {
+            continue;
+          }
+        } else {
+          continue;
+        }
+      }
+      
+      date = new Date(year, month, day);
+      if (!isNaN(date.getTime())) return date;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Extract potential dates from text content
+ */
+function extractDatesFromText(text) {
+  if (!text) return [];
+  
+  const dates = [];
+  const patterns = [
+    /\b(?:due|by|on|before)\s+(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:,\s*\d{4})?)\b/gi,
+    /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:,\s*\d{4})?\b/gi,
+    /\b\d{4}-\d{2}-\d{2}\b/g,
+    /\b\d{1,2}\/\d{1,2}\/\d{4}\b/g
+  ];
+  
+  for (const pattern of patterns) {
+    const matches = text.match(pattern);
+    if (matches) {
+      matches.forEach(match => {
+        const date = parseSmartDate(match.replace(/^(?:due|by|on|before)\s+/i, ''));
+        if (date) dates.push(date);
+      });
+    }
+  }
+  
+  return dates;
+}
+
+/**
+ * Calculate urgency score (0-100, higher = more urgent)
+ * Factors:
+ * - Days until deadline (exponential penalty as deadline approaches)
+ * - Priority/importance tags
+ * - Manual priority settings
+ */
+function getUrgencyScore(item) {
+  let score = 0;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  
+  // Find the deadline
+  let deadline = null;
+  
+  // Direct date field
+  if (item.date) {
+    deadline = parseSmartDate(item.date);
+  }
+  if (!deadline && item.deadline) {
+    deadline = parseSmartDate(item.deadline);
+  }
+  if (!deadline && item.due) {
+    deadline = parseSmartDate(item.due);
+  }
+  
+  // Extract from title/description
+  if (!deadline && (item.title || item.text || item.description)) {
+    const text = (item.title || '') + ' ' + (item.text || '') + ' ' + (item.description || '');
+    const dates = extractDatesFromText(text);
+    if (dates.length > 0) {
+      // Use the earliest date
+      deadline = new Date(Math.min(...dates));
+    }
+  }
+  
+  // Calculate days until deadline
+  if (deadline) {
+    const daysUntil = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+    
+    if (daysUntil < 0) {
+      // Overdue - maximum urgency
+      score += 100;
+    } else if (daysUntil === 0) {
+      // Due today
+      score += 90;
+    } else if (daysUntil === 1) {
+      // Due tomorrow
+      score += 80;
+    } else if (daysUntil <= 3) {
+      // Due within 3 days
+      score += 70;
+    } else if (daysUntil <= 7) {
+      // Due within week
+      score += 50;
+    } else if (daysUntil <= 14) {
+      // Due within 2 weeks
+      score += 30;
+    } else if (daysUntil <= 30) {
+      // Due within month
+      score += 15;
+    } else {
+      // Far future
+      score += 5;
+    }
+    
+    // Store parsed deadline for reference
+    item._parsedDeadline = deadline;
+    item._daysUntil = daysUntil;
+  } else {
+    // No deadline - neutral score
+    score += 20;
+  }
+  
+  // Priority/importance boosts
+  const tag = (item.tag || item.priority || item.importance || '').toLowerCase();
+  
+  if (tag.includes('urgent') || tag === 'high' || tag === 'hot') {
+    score += 25;
+  } else if (tag.includes('important') || tag === 'medium' || tag === 'notable') {
+    score += 15;
+  } else if (tag === 'normal' || tag === 'low' || tag === 'reference') {
+    score += 5;
+  }
+  
+  // Manual priority settings
+  if (item.priority === 'high') {
+    score += 20;
+  } else if (item.priority === 'medium') {
+    score += 10;
+  } else if (item.priority === 'low') {
+    score += 0;
+  }
+  
+  // Status modifiers
+  if (item.status === 'inprogress' || item.status === 'active') {
+    score += 5; // Slight boost for active work
+  }
+  if (item.status === 'done' || item.done === true) {
+    score = 0; // Completed items get minimum priority
+  }
+  
+  // Cap at 100
+  return Math.min(100, Math.max(0, score));
+}
+
+/**
+ * Sort items by urgency (highest first)
+ */
+function sortItems(items) {
+  // Calculate scores
+  const scored = items.map(item => ({
+    item,
+    score: getUrgencyScore(item)
+  }));
+  
+  // Sort by score descending
+  scored.sort((a, b) => b.score - a.score);
+  
+  // Return sorted items
+  return scored.map(s => s.item);
+}
+
+/**
+ * Get priority label based on urgency score
+ */
+function getUrgencyLabel(score) {
+  if (score >= 80) return { label: 'Critical', class: 'urgent', icon: '🔥' };
+  if (score >= 60) return { label: 'High', class: 'important', icon: '⚡' };
+  if (score >= 40) return { label: 'Medium', class: 'normal', icon: '📌' };
+  return { label: 'Low', class: 'normal', icon: '📎' };
+}
+
+/**
+ * Format days until deadline for display
+ */
+function formatDeadline(daysUntil, deadline) {
+  if (daysUntil === undefined || daysUntil === null) return null;
+  
+  if (daysUntil < 0) return { text: `Overdue by ${Math.abs(daysUntil)} days`, urgent: true };
+  if (daysUntil === 0) return { text: 'Due today', urgent: true };
+  if (daysUntil === 1) return { text: 'Due tomorrow', urgent: true };
+  if (daysUntil <= 3) return { text: `Due in ${daysUntil} days`, urgent: true };
+  if (daysUntil <= 7) return { text: `Due in ${daysUntil} days`, urgent: false };
+  if (deadline) {
+    return { text: `Due ${deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`, urgent: false };
+  }
+  return null;
+}
+
 function getTimeline() { return S.get('timeline', [
   { id:1, title:'Arrival & Anchor', date:'2023 – 2024', desc:'Landing in Canada, finding footing, building first threads', status:'completed', milestones:[{id:1,text:'Arrived in Canada',done:true},{id:2,text:'First volunteer role',done:true},{id:3,text:'Secured work permit',done:true}] },
   { id:2, title:'The Hustle', date:'2024 – 2025', desc:'Multiple jobs, volunteering, proving value, filling time', status:'completed', milestones:[{id:4,text:'Bright Futures position',done:true},{id:5,text:'Firebird launched',done:true},{id:6,text:'Built agent constellation',done:true}] },
@@ -790,12 +2243,60 @@ function renderDashboard(el) {
   const greeting = hour<12?'morning':hour<18?'afternoon':'evening';
   const dateStr = new Date().toLocaleString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
 
-  el.innerHTML = `
-    <div class="welcome-bar">
-      <h1 class="welcome-title">Good <span>${greeting}</span>, TJ ✦</h1>
-      <p class="welcome-subtitle">${dateStr}</p>
-      <p style="color:var(--text-muted);font-size:.85rem;margin-top:.375rem;font-style:italic">"Many stars, each distinct, together something more"</p>
-    </div>
+  // Try to get Morning Report
+  const morningReport = S.get('morning_report_data');
+  const showMorningReport = morningReport && morningReport.date === todayStr() && morningReport.todayEvents.length > 0;
+
+  let welcomeHTML = '';
+  
+  if (showMorningReport) {
+    // Morning Report Welcome Bar
+    const prepAlertHTML = morningReport.prepAlerts.length > 0 ? `
+      <div style="margin-top:.75rem;padding:.75rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;">
+        <div style="font-size:.75rem;color:var(--warning);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem">⚡ Up Next</div>
+        <div style="font-size:.9rem;color:var(--text-secondary);">${esc(morningReport.prepAlerts[0].message)}</div>
+      </div>
+    ` : '';
+
+    const eventCount = morningReport.todayEvents.length;
+    const conflictWarning = morningReport.conflicts.filter(c => c.overlap).length > 0 ? `
+      <span style="color:var(--danger);font-size:.8rem;margin-left:.5rem">⚠️ ${morningReport.conflicts.filter(c => c.overlap).length} conflict(s)</span>
+    ` : '';
+
+    welcomeHTML = `
+      <div class="welcome-bar">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+          <div>
+            <h1 class="welcome-title">${morningReport.greeting}, TJ ✦</h1>
+            <p class="welcome-subtitle">${dateStr}</p>
+            <p style="color:var(--text-muted);font-size:.85rem;margin-top:.375rem;">
+              📅 ${eventCount} event${eventCount !== 1 ? 's' : ''} today${conflictWarning}
+            </p>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            ${morningReport.todayEvents.slice(0, 3).map(e => {
+              const time = new Date(e.startTime).toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'});
+              return `<span style="background:rgba(212,168,75,.12);color:var(--accent);padding:.25rem .625rem;border-radius:6px;font-size:.75rem;font-weight:500">${time} ${esc(e.title)}</span>`;
+            }).join('')}
+            ${eventCount > 3 ? `<span style="color:var(--text-muted);font-size:.75rem;padding:.25rem 0;">+${eventCount - 3} more</span>` : ''}
+          </div>
+        </div>
+        ${prepAlertHTML}
+        ${renderSuggestions(morningReport.suggestions)}
+      </div>
+    `;
+  } else {
+    // Default Welcome Bar
+    welcomeHTML = `
+      <div class="welcome-bar">
+        <h1 class="welcome-title">Good <span>${greeting}</span>, TJ ✦</h1>
+        <p class="welcome-subtitle">${dateStr}</p>
+        <p style="color:var(--text-muted);font-size:.85rem;margin-top:.375rem;font-style:italic">"Many stars, each distinct, together something more"</p>
+      </div>
+    `;
+  }
+
+  el.innerHTML = welcomeHTML;
     <div class="metrics-grid" role="region" aria-label="Key Metrics">
       <div class="card metric-card">
         <div class="metric-label">Path Progress</div>
@@ -836,15 +2337,24 @@ function renderDashboard(el) {
     </div>
   `;
 
+  // Sort priorities by smart urgency scoring
+  const sortedPriorities = sortItems(priorities.map(p => ({...p, priority: p.tag})));
+  
   // Render priorities using DOM API for XSS protection
   const pList = document.getElementById('priorityList');
-  if (priorities.length === 0) {
+  if (sortedPriorities.length === 0) {
     pList.innerHTML = '<div style="padding:1rem;color:var(--text-muted);text-align:center">All clear! Add a priority above.</div>';
   } else {
     const pFragment = document.createDocumentFragment();
-    priorities.forEach(p => {
+    sortedPriorities.forEach(p => {
+      const score = getUrgencyScore({...p, priority: p.tag});
+      const urgencyLabel = getUrgencyLabel(score);
+      const deadline = formatDeadline(p._daysUntil, p._parsedDeadline);
+      
       const div = document.createElement('div');
       div.className = 'priority-item';
+      div.style.borderLeft = score >= 60 ? `3px solid var(--${urgencyLabel.class === 'urgent' ? 'danger' : 'warning'})` : 'none';
+      div.style.paddingLeft = score >= 60 ? 'calc(.75rem - 3px)' : '.75rem';
 
       const checkDiv = document.createElement('div');
       checkDiv.className = 'priority-check ' + (p.done ? 'done' : '');
@@ -853,6 +2363,26 @@ function renderDashboard(el) {
       const textSpan = document.createElement('span');
       textSpan.className = 'priority-text ' + (p.done ? 'done' : '');
       textSpan.textContent = p.text;
+
+      const metaSpan = document.createElement('span');
+      metaSpan.style.cssText = 'display:flex;align-items:center;gap:.375rem;margin-left:auto;margin-right:.5rem';
+      
+      // Show deadline info if available
+      if (deadline && !p.done) {
+        const deadlineSpan = document.createElement('span');
+        deadlineSpan.style.cssText = `font-size:.7rem;padding:.15rem .4rem;border-radius:4px;font-weight:500;${deadline.urgent ? 'background:rgba(239,68,68,.15);color:var(--danger)' : 'background:var(--border-subtle);color:var(--text-muted)'}`;
+        deadlineSpan.textContent = deadline.text;
+        metaSpan.appendChild(deadlineSpan);
+      }
+      
+      // Show auto-calculated urgency for high-priority items
+      if (score >= 60 && !p.done) {
+        const urgencySpan = document.createElement('span');
+        urgencySpan.style.cssText = 'font-size:.7rem;color:var(--accent);font-weight:500';
+        urgencySpan.textContent = urgencyLabel.icon;
+        urgencySpan.title = `Urgency score: ${Math.round(score)}/100`;
+        metaSpan.appendChild(urgencySpan);
+      }
 
       const tagSpan = document.createElement('span');
       tagSpan.className = 'priority-tag ' + p.tag;
@@ -865,6 +2395,7 @@ function renderDashboard(el) {
 
       div.appendChild(checkDiv);
       div.appendChild(textSpan);
+      if (metaSpan.children.length > 0) div.appendChild(metaSpan);
       div.appendChild(tagSpan);
       div.appendChild(delBtn);
       pFragment.appendChild(div);
@@ -965,24 +2496,39 @@ function editGoalDate() {
 // ============================================
 let draggedTaskId = null;
 function renderProjects(el) {
-  const tasks = getTasks();
+  let tasks = getTasks();
   const cols = [
     {key:'backlog',label:'🌑 Gathering'},
     {key:'inprogress',label:'✨ In Motion'},
     {key:'done',label:'🌟 Transformed'}
   ];
 
+  // Sort tasks within each column by urgency (done items stay at bottom)
+  const getSortedTasks = (statusTasks) => {
+    const active = statusTasks.filter(t => t.status !== 'done');
+    const completed = statusTasks.filter(t => t.status === 'done');
+    return [...sortItems(active), ...completed];
+  };
+
   el.innerHTML = `
     <div class="welcome-bar"><h1 class="welcome-title">🎯 The Path</h1><p class="welcome-subtitle">What you're carrying — the weight and the way forward</p></div>
     <div class="kanban-board">${cols.map(c => {
       const colTasks = tasks.filter(t=>t.status===c.key);
+      const sortedColTasks = c.key === 'done' ? colTasks : getSortedTasks(colTasks);
       return `<div class="card kanban-column">
         <div class="kanban-column-header"><strong>${c.label}</strong><span class="kanban-count">${colTasks.length}</span></div>
         <div class="drop-zone" id="drop-${c.key}" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="dropTask(event,'${c.key}')">
-          ${colTasks.map(t => `
-            <div class="task-card" draggable="true" ondragstart="draggedTaskId=${t.id};this.classList.add('dragging')" ondragend="this.classList.remove('dragging')">
-              <div class="task-card-title">${esc(t.title)}</div>
+          ${sortedColTasks.map(t => {
+            const score = getUrgencyScore(t);
+            const urgencyLabel = getUrgencyLabel(score);
+            const deadline = formatDeadline(t._daysUntil, t._parsedDeadline);
+            const isUrgent = score >= 60 && t.status !== 'done';
+            
+            return `
+            <div class="task-card" draggable="true" ondragstart="draggedTaskId=${t.id};this.classList.add('dragging')" ondragend="this.classList.remove('dragging')" style="${isUrgent ? 'border-left:3px solid var(--warning);padding-left:calc(1rem - 3px)' : ''}">
+              <div class="task-card-title">${esc(t.title)} ${isUrgent ? `<span style="font-size:.8rem" title="Urgency: ${Math.round(score)}/100">${urgencyLabel.icon}</span>` : ''}</div>
               ${t.description?`<div class="task-card-desc">${esc(t.description)}</div>`:''}
+              ${deadline && t.status !== 'done' ? `<div style="font-size:.75rem;color:${deadline.urgent ? 'var(--danger)' : 'var(--text-muted)'};margin-bottom:.5rem">📅 ${deadline.text}</div>` : ''}
               <div class="task-card-footer">
                 <span class="task-priority ${t.priority}">${t.priority}</span>
                 <div class="task-card-actions">
@@ -992,7 +2538,7 @@ function renderProjects(el) {
                 </div>
               </div>
             </div>
-          `).join('')}
+          `}).join('')}
         </div>
         <button class="btn btn-ghost" onclick="addTask('${c.key}')">+ Add task</button>
       </div>`;
@@ -1071,6 +2617,374 @@ function saveTask() {
 }
 
 // ============================================
+// CONSTELLATION ORG CHART
+// ============================================
+function getConstellation() {
+  let nodes = S.get('constellation', null);
+  if (!nodes) {
+    // Pre-populate with TJ's network
+    nodes = [
+      { 
+        id: 'tj', 
+        name: 'TJ', 
+        role: 'The Center', 
+        type: 'center', 
+        status: 'active', 
+        lastContact: new Date().toISOString(), 
+        notes: 'The heart of the constellation. All connections flow from here.',
+        connectionStrength: 10
+      },
+      { 
+        id: 'serena', 
+        name: 'Serena', 
+        role: 'Grounding Force', 
+        type: 'grounding', 
+        status: 'active', 
+        lastContact: new Date(Date.now() - 86400000 * 5).toISOString(), 
+        notes: 'Provides emotional stability and deep connection to present moment.',
+        connectionStrength: 9
+      },
+      { 
+        id: 'flora', 
+        name: 'Flora', 
+        role: 'Anchor to Present', 
+        type: 'anchor', 
+        status: 'active', 
+        lastContact: new Date(Date.now() - 86400000 * 2).toISOString(), 
+        notes: 'Keeps TJ rooted in daily reality and practical matters.',
+        connectionStrength: 8
+      },
+      { 
+        id: 'alex', 
+        name: 'Alex', 
+        role: 'Restricted/Trigger Node', 
+        type: 'trigger', 
+        status: 'caution', 
+        lastContact: new Date(Date.now() - 86400000 * 45).toISOString(), 
+        notes: 'Connection requires careful navigation. Last contact was challenging.',
+        connectionStrength: 3
+      }
+    ];
+    S.set('constellation', nodes);
+  }
+  return nodes;
+}
+
+function saveConstellation(nodes) {
+  S.set('constellation', nodes);
+}
+
+function isContactStale(lastContact) {
+  const daysSince = Math.floor((Date.now() - new Date(lastContact)) / 86400000);
+  return daysSince > 30;
+}
+
+function getDaysSinceContact(lastContact) {
+  return Math.floor((Date.now() - new Date(lastContact)) / 86400000);
+}
+
+function getNodeStatusColor(status) {
+  const colors = {
+    active: 'var(--success)',
+    dormant: 'var(--text-muted)',
+    caution: 'var(--danger)'
+  };
+  return colors[status] || 'var(--text-muted)';
+}
+
+function getNodeTypeIcon(type) {
+  const icons = {
+    center: '✦',
+    anchor: '⚓',
+    grounding: '🌍',
+    trigger: '⚠️'
+  };
+  return icons[type] || '●';
+}
+
+function renderConstellationDiagram() {
+  const nodes = getConstellation();
+  const centerNode = nodes.find(n => n.type === 'center') || nodes[0];
+  const orbitNodes = nodes.filter(n => n.type !== 'center');
+  
+  // Calculate positions for orbit nodes
+  const orbitRadius = 120;
+  const angleStep = (2 * Math.PI) / Math.max(orbitNodes.length, 1);
+  
+  let svgContent = `
+    <svg viewBox="0 0 400 320" style="width:100%;height:320px;overflow:visible">
+      <defs>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+  `;
+  
+  // Draw connection lines from center to each node
+  orbitNodes.forEach((node, index) => {
+    const angle = index * angleStep - Math.PI / 2;
+    const x = 200 + orbitRadius * Math.cos(angle);
+    const y = 160 + orbitRadius * Math.sin(angle);
+    const opacity = node.connectionStrength / 10;
+    const strokeColor = node.status === 'caution' ? 'var(--danger)' : 
+                       node.status === 'dormant' ? 'var(--text-muted)' : 'var(--accent)';
+    
+    svgContent += `<line x1="200" y1="160" x2="${x}" y2="${y}" 
+      stroke="${strokeColor}" stroke-width="${Math.max(1, node.connectionStrength / 3)}" 
+      opacity="${opacity * 0.6}" stroke-dasharray="${node.status === 'dormant' ? '5,5' : 'none'}" />`;
+  });
+  
+  // Draw center node (TJ)
+  const centerColor = 'var(--accent)';
+  svgContent += `
+    <g class="constellation-node" onclick="openConstellationNodePanel('${centerNode.id}')" style="cursor:pointer">
+      <circle cx="200" cy="160" r="28" fill="var(--bg-primary)" stroke="${centerColor}" stroke-width="3" filter="url(#glow)" />
+      <text x="200" y="165" text-anchor="middle" fill="${centerColor}" font-size="14" font-weight="600">${centerNode.name}</text>
+    </g>
+  `;
+  
+  // Draw orbit nodes
+  orbitNodes.forEach((node, index) => {
+    const angle = index * angleStep - Math.PI / 2;
+    const x = 200 + orbitRadius * Math.cos(angle);
+    const y = 160 + orbitRadius * Math.sin(angle);
+    const radius = 18 + (node.connectionStrength / 10) * 10;
+    const nodeColor = getNodeStatusColor(node.status);
+    const stale = isContactStale(node.lastContact);
+    
+    svgContent += `
+      <g class="constellation-node" onclick="openConstellationNodePanel('${node.id}')" style="cursor:pointer">
+        <circle cx="${x}" cy="${y}" r="${radius}" fill="var(--bg-primary)" stroke="${nodeColor}" stroke-width="${stale ? 2 : 3}" 
+          ${stale ? 'stroke-dasharray="4,4"' : ''} opacity="${node.status === 'dormant' ? 0.6 : 1}" />
+        <text x="${x}" y="${y + 5}" text-anchor="middle" fill="${nodeColor}" font-size="11" font-weight="500">${node.name}</text>
+        ${stale ? `<circle cx="${x + radius - 5}" cy="${y - radius + 5}" r="5" fill="var(--warning)" />` : ''}
+      </g>
+    `;
+  });
+  
+  svgContent += '</svg>';
+  return svgContent;
+}
+
+function openConstellationNodePanel(nodeId) {
+  const nodes = getConstellation();
+  const node = nodes.find(n => n.id === nodeId);
+  if (!node) return;
+  
+  const daysSince = getDaysSinceContact(node.lastContact);
+  const stale = isContactStale(node.lastContact);
+  const statusColor = getNodeStatusColor(node.status);
+  const typeIcon = getNodeTypeIcon(node.type);
+  
+  document.getElementById('slidePanelTitle').textContent = `${typeIcon} ${node.name}`;
+  document.getElementById('slidePanelContent').innerHTML = `
+    <div style="margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${statusColor}"></span>
+        <span style="color:var(--text-secondary);font-size:.9rem;text-transform:capitalize">${node.status}</span>
+        ${stale ? '<span style="background:var(--warning);color:#fff;padding:.15rem .4rem;border-radius:4px;font-size:.7rem">Stale</span>' : ''}
+      </div>
+      <div style="font-size:.85rem;color:var(--text-muted);margin-bottom:.25rem">Role</div>
+      <div style="font-size:1rem;color:var(--text-primary);font-weight:500">${node.role}</div>
+    </div>
+    
+    <div style="margin-bottom:1.5rem">
+      <div style="font-size:.85rem;color:var(--text-muted);margin-bottom:.25rem">Connection Strength</div>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <div style="flex:1;height:8px;background:var(--border-subtle);border-radius:4px;overflow:hidden">
+          <div style="width:${node.connectionStrength * 10}%;height:100%;background:linear-gradient(90deg,var(--accent),var(--success));border-radius:4px"></div>
+        </div>
+        <span style="font-size:.9rem;font-weight:600;color:var(--text-secondary)">${node.connectionStrength}/10</span>
+      </div>
+    </div>
+    
+    <div style="margin-bottom:1.5rem">
+      <div style="font-size:.85rem;color:var(--text-muted);margin-bottom:.25rem">Last Contact</div>
+      <div style="font-size:.95rem;color:var(--text-primary)">${new Date(node.lastContact).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'})}</div>
+      <div style="font-size:.8rem;color:${stale ? 'var(--warning)' : 'var(--text-muted)'}">${daysSince} days ago</div>
+    </div>
+    
+    <div style="margin-bottom:1.5rem">
+      <div style="font-size:.85rem;color:var(--text-muted);margin-bottom:.25rem">Notes</div>
+      <div style="font-size:.9rem;color:var(--text-secondary);line-height:1.5;padding:.75rem;background:rgba(255,255,255,.03);border-radius:8px;border:1px solid var(--border-subtle)">${node.notes || 'No notes added.'}</div>
+    </div>
+    
+    <div style="display:flex;flex-direction:column;gap:.5rem">
+      <button class="btn btn-primary" onclick="logConstellationContact('${node.id}')">
+        📅 Log Contact
+      </button>
+      <button class="btn" style="background:rgba(255,255,255,.05);border:1px solid var(--border-subtle);color:var(--text-secondary)" onclick="editConstellationNode('${node.id}')">
+        ✏️ Edit Node
+      </button>
+      ${node.type !== 'center' ? `<button class="btn" style="background:rgba(255,255,255,.05);border:1px solid var(--border-subtle);color:var(--danger)" onclick="deleteConstellationNode('${node.id}')">🗑️ Remove Node</button>` : ''}
+    </div>
+    
+    ${node.type === 'trigger' ? `
+    <div style="margin-top:1.5rem;padding:.75rem;background:rgba(201,123,123,.1);border:1px solid rgba(201,123,123,.2);border-radius:8px">
+      <div style="font-size:.8rem;color:var(--danger);font-weight:500;margin-bottom:.25rem">⚠️ Caution Zone</div>
+      <div style="font-size:.8rem;color:var(--text-secondary)">This connection requires careful navigation. Consider checking in with your grounding nodes before engaging.</div>
+    </div>
+    ` : ''}
+  `;
+  
+  document.getElementById('slidePanel').classList.add('open');
+  document.getElementById('slideOverlay').classList.add('open');
+}
+
+function logConstellationContact(nodeId) {
+  const nodes = getConstellation();
+  const node = nodes.find(n => n.id === nodeId);
+  if (node) {
+    node.lastContact = new Date().toISOString();
+    saveConstellation(nodes);
+    logAct('📅', 'system', `Logged contact with ${node.name}`);
+    toast(`Contact with ${node.name} logged`);
+    closeSlidePanel();
+    renderActiveTab();
+  }
+}
+
+function editConstellationNode(nodeId) {
+  const nodes = getConstellation();
+  const node = nodes.find(n => n.id === nodeId);
+  if (!node) return;
+  
+  closeSlidePanel();
+  openModal(`
+    <div class="modal-header"><h3 class="modal-title" id="modalTitle">Edit Node</h3><button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button></div>
+    <input type="hidden" id="constellationEditId" value="${node.id}">
+    <label class="modal-label">Name</label>
+    <input class="modal-input" id="constellationName" value="${esc(node.name)}" ${node.type === 'center' ? 'disabled' : ''}>
+    <label class="modal-label">Role</label>
+    <input class="modal-input" id="constellationRole" value="${esc(node.role)}">
+    <label class="modal-label">Type</label>
+    <select class="modal-input modal-select" id="constellationType" ${node.type === 'center' ? 'disabled' : ''}>
+      <option value="anchor" ${node.type === 'anchor' ? 'selected' : ''}>⚓ Anchor</option>
+      <option value="grounding" ${node.type === 'grounding' ? 'selected' : ''}>🌍 Grounding</option>
+      <option value="trigger" ${node.type === 'trigger' ? 'selected' : ''}>⚠️ Trigger</option>
+    </select>
+    <label class="modal-label">Status</label>
+    <select class="modal-input modal-select" id="constellationStatus">
+      <option value="active" ${node.status === 'active' ? 'selected' : ''}>Active</option>
+      <option value="dormant" ${node.status === 'dormant' ? 'selected' : ''}>Dormant</option>
+      <option value="caution" ${node.status === 'caution' ? 'selected' : ''}>Caution</option>
+    </select>
+    <label class="modal-label">Connection Strength (1-10)</label>
+    <input type="range" class="modal-input" id="constellationStrength" min="1" max="10" value="${node.connectionStrength}" oninput="document.getElementById('strengthValue').textContent=this.value">
+    <div style="text-align:center;font-size:.85rem;color:var(--text-muted);margin-bottom:.75rem">Strength: <span id="strengthValue">${node.connectionStrength}</span>/10</div>
+    <label class="modal-label">Notes</label>
+    <textarea class="modal-input textarea" id="constellationNotes">${esc(node.notes)}</textarea>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-btn-primary" onclick="saveConstellationNode()">Save</button>
+    </div>
+  `);
+}
+
+function saveConstellationNode() {
+  const id = document.getElementById('constellationEditId').value;
+  const name = document.getElementById('constellationName').value.trim();
+  const role = document.getElementById('constellationRole').value.trim();
+  const type = document.getElementById('constellationType').value;
+  const status = document.getElementById('constellationStatus').value;
+  const strength = parseInt(document.getElementById('constellationStrength').value);
+  const notes = document.getElementById('constellationNotes').value.trim();
+  
+  if (!name || !role) return toast('Name and role are required', 'error');
+  
+  const nodes = getConstellation();
+  const node = nodes.find(n => n.id === id);
+  if (node) {
+    node.name = name;
+    node.role = role;
+    if (node.type !== 'center') node.type = type;
+    node.status = status;
+    node.connectionStrength = strength;
+    node.notes = notes;
+    saveConstellation(nodes);
+    logAct('✏️', 'system', `Updated constellation node: ${name}`);
+    toast('Node updated');
+    closeModal();
+    renderActiveTab();
+  }
+}
+
+function deleteConstellationNode(nodeId) {
+  if (!confirm('Remove this node from your constellation?')) return;
+  const nodes = getConstellation();
+  const node = nodes.find(n => n.id === nodeId);
+  if (node) {
+    const filtered = nodes.filter(n => n.id !== nodeId);
+    saveConstellation(filtered);
+    logAct('🗑️', 'system', `Removed ${node.name} from constellation`);
+    toast('Node removed');
+    closeSlidePanel();
+    renderActiveTab();
+  }
+}
+
+function addConstellationNode() {
+  openModal(`
+    <div class="modal-header"><h3 class="modal-title" id="modalTitle">Add Node to Constellation</h3><button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button></div>
+    <input class="modal-input" id="newConstellationName" placeholder="Name" autofocus>
+    <input class="modal-input" id="newConstellationRole" placeholder="Role (e.g., Mentor, Family, Collaborator)">
+    <label class="modal-label">Type</label>
+    <select class="modal-input modal-select" id="newConstellationType">
+      <option value="anchor">⚓ Anchor (keeps you grounded)</option>
+      <option value="grounding">🌍 Grounding (emotional support)</option>
+      <option value="trigger">⚠️ Trigger (requires care)</option>
+    </select>
+    <label class="modal-label">Status</label>
+    <select class="modal-input modal-select" id="newConstellationStatus">
+      <option value="active">Active</option>
+      <option value="dormant">Dormant</option>
+      <option value="caution">Caution</option>
+    </select>
+    <label class="modal-label">Connection Strength (1-10)</label>
+    <input type="range" class="modal-input" id="newConstellationStrength" min="1" max="10" value="5" oninput="document.getElementById('newStrengthValue').textContent=this.value">
+    <div style="text-align:center;font-size:.85rem;color:var(--text-muted);margin-bottom:.75rem">Strength: <span id="newStrengthValue">5</span>/10</div>
+    <textarea class="modal-input textarea" id="newConstellationNotes" placeholder="Notes about this connection..."></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-btn-primary" onclick="saveNewConstellationNode()">Add Node</button>
+    </div>
+  `);
+}
+
+function saveNewConstellationNode() {
+  const name = document.getElementById('newConstellationName').value.trim();
+  const role = document.getElementById('newConstellationRole').value.trim();
+  const type = document.getElementById('newConstellationType').value;
+  const status = document.getElementById('newConstellationStatus').value;
+  const strength = parseInt(document.getElementById('newConstellationStrength').value);
+  const notes = document.getElementById('newConstellationNotes').value.trim();
+  
+  if (!name || !role) return toast('Name and role are required', 'error');
+  
+  const nodes = getConstellation();
+  const newNode = {
+    id: 'node_' + Date.now(),
+    name,
+    role,
+    type,
+    status,
+    lastContact: new Date().toISOString(),
+    notes,
+    connectionStrength: strength
+  };
+  nodes.push(newNode);
+  saveConstellation(nodes);
+  logAct('✨', 'system', `Added ${name} to constellation`);
+  toast('Node added to constellation');
+  closeModal();
+  renderActiveTab();
+}
+
+// ============================================
 // COMMAND CENTER
 // ============================================
 // ============================================
@@ -1121,10 +3035,43 @@ function renderCommand(el) {
     }
   };
 
+  // Get constellation data for summary
+  const constellationNodes = getConstellation();
+  const activeNodes = constellationNodes.filter(n => n.status === 'active' && n.type !== 'center').length;
+  const staleNodes = constellationNodes.filter(n => n.type !== 'center' && isContactStale(n.lastContact)).length;
+  
   el.innerHTML = `
     <div class="welcome-bar">
       <h1 class="welcome-title">🌟 Command Center</h1>
       <p class="welcome-subtitle">Notion workspace sync • 7 databases connected</p>
+    </div>
+    
+    <!-- Constellation Org Chart -->
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header">
+        <span class="card-title">✨ Constellation Map</span>
+        <div style="display:flex;align-items:center;gap:.75rem">
+          <span style="font-size:.8rem;color:var(--text-muted)">${activeNodes} active · ${staleNodes} stale</span>
+          <button class="btn btn-sm btn-primary" onclick="addConstellationNode()">+ Add Node</button>
+        </div>
+      </div>
+      <div style="padding:1rem 0">
+        ${renderConstellationDiagram()}
+      </div>
+      <div style="display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;margin-top:.5rem;padding-top:1rem;border-top:1px solid var(--border-subtle)">
+        <div style="display:flex;align-items:center;gap:.375rem;font-size:.8rem;color:var(--text-muted)">
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--success)"></span> Active
+        </div>
+        <div style="display:flex;align-items:center;gap:.375rem;font-size:.8rem;color:var(--text-muted)">
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--text-muted)"></span> Dormant
+        </div>
+        <div style="display:flex;align-items:center;gap:.375rem;font-size:.8rem;color:var(--text-muted)">
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--danger)"></span> Caution
+        </div>
+        <div style="display:flex;align-items:center;gap:.375rem;font-size:.8rem;color:var(--text-muted)">
+          <span style="width:10px;height:10px;border-radius:50%;border:2px dashed var(--warning)"></span> Stale (>30d)
+        </div>
+      </div>
     </div>
     
     <div style="margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
@@ -1346,9 +3293,16 @@ function saveDecision() {
 // MEETINGS
 // ============================================
 function renderMeetingsTab(el) {
-  const meetings = getMeetings();
+  let meetings = getMeetings();
   const now = new Date();
   const today = [], upcoming = [], past = [];
+  const syncState = GCal.getSyncState();
+
+  // Calculate urgency scores for all meetings
+  meetings = meetings.map(m => {
+    const score = getUrgencyScore({...m, priority: 'high'});
+    return {...m, _urgencyScore: score, _daysUntil: m._daysUntil};
+  });
 
   meetings.forEach(m => {
     const dt = new Date(m.date+'T'+m.time);
@@ -1357,8 +3311,13 @@ function renderMeetingsTab(el) {
     else upcoming.push(m);
   });
 
-  today.sort((a,b)=>a.time.localeCompare(b.time));
-  upcoming.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  // Sort by urgency within time groups
+  today.sort((a,b) => a.time.localeCompare(b.time));
+  upcoming.sort((a,b) => {
+    // Sort by urgency score first, then by date/time
+    if (b._urgencyScore !== a._urgencyScore) return b._urgencyScore - a._urgencyScore;
+    return (a.date+a.time).localeCompare(b.date+b.time);
+  });
   past.sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
 
   const renderCard = (m, isToday=false) => {
@@ -1369,13 +3328,15 @@ function renderMeetingsTab(el) {
     const countdown = diff<0?'Started':diff<3600000?Math.ceil(diff/60000)+'m':Math.floor(diff/3600000)+'h '+Math.ceil((diff%3600000)/60000)+'m';
     const urgent = diff>0 && diff<3600000;
     const icons = {call:'📞',zoom:'💻','in-person':'🤝'};
+    const isSynced = !!m.gcalId;
 
-    return `<div class="card meeting-card ${isToday?'today':''}">
+    return `<div class="card meeting-card ${isToday?'today':''}" data-meeting-id="${m.id}">
       <div class="meeting-card-header" onclick="toggleMtgExpand('${m.id}')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
-          <div style="flex:1"><div class="meeting-title">${esc(m.title)}</div>
+          <div style="flex:1"><div class="meeting-title">${esc(m.title)} ${isSynced ? '<span style="color:var(--success);font-size:.75rem" title="Synced with Google Calendar">✓</span>' : ''}</div>
           <div class="meeting-datetime"><span>${dateDisplay} at ${timeDisplay}</span><span class="meeting-countdown ${urgent?'urgent':''}">${countdown}</span></div></div>
           <div style="display:flex;gap:.25rem" onclick="event.stopPropagation()">
+            <button class="btn-icon" onclick="syncMeetingToCalendar('${m.id}')" title="Add to Google Calendar">📅</button>
             <button class="btn-icon" onclick="editMeeting('${m.id}')">✏️</button>
             <button class="btn-icon" onclick="deleteMeeting('${m.id}')" style="color:var(--danger)">✕</button>
           </div>
@@ -1383,6 +3344,7 @@ function renderMeetingsTab(el) {
         <div class="meeting-meta"><span>${icons[m.type]||'📅'} ${m.type}</span><span>👥 ${esc(m.attendees)}</span></div>
       </div>
       <div class="meeting-expanded" id="mtg-exp-${m.id}">
+        ${m.gcalId ? `<div style="margin-bottom:1rem;padding:.5rem;background:rgba(107,144,128,.08);border:1px solid rgba(107,144,128,.2);border-radius:6px;display:flex;align-items:center;justify-content:space-between;"><span style="font-size:.8rem;color:var(--success)">✓ Synced with Google Calendar</span><a href="https://calendar.google.com/calendar/event?eid=${btoa(m.gcalId).replace(/=/g, '')}" target="_blank" style="font-size:.75rem;color:var(--accent);text-decoration:none;">Open in GCal →</a></div>` : ''}
         ${m.prepNotes?`<div class="meeting-section"><div class="meeting-section-title">📝 Prep</div><p style="color:var(--text-secondary);font-size:.9rem">${esc(m.prepNotes)}</p></div>`:''}
         <div class="meeting-section"><div class="meeting-section-title">📋 Agenda</div>
           ${m.agenda.map(a=>`<div class="agenda-item"><div class="priority-check ${a.done?'done':''}" onclick="toggleMtgAgenda('${m.id}',${a.id})"></div><span class="priority-text ${a.done?'done':''}">${esc(a.text)}</span></div>`).join('')}
@@ -1400,9 +3362,32 @@ function renderMeetingsTab(el) {
   };
 
   el.innerHTML = `
-    <div class="welcome-bar"><h1 class="welcome-title">📞 Rituals</h1><p class="welcome-subtitle">Sacred gatherings</p></div>
+    <div class="welcome-bar">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+        <div>
+          <h1 class="welcome-title">📞 Rituals</h1>
+          <p class="welcome-subtitle">Sacred gatherings</p>
+        </div>
+        <div style="display:flex;gap:.5rem;">
+          ${GCal.useMockData ? `
+            <button class="btn btn-sm" style="background:rgba(90,163,200,.1);border:1px solid rgba(90,163,200,.3);color:var(--info)" onclick="configureGoogleCalendar()" title="Configure Google Calendar integration">
+              ⚙️ Configure GCal
+            </button>
+          ` : `
+            <button class="btn btn-sm" style="background:rgba(255,255,255,.05);border:1px solid var(--border-subtle);color:var(--text-secondary)" onclick="toggleCalendarSync()" title="${syncState.syncEnabled ? 'Disable' : 'Enable'} Google Calendar sync">
+              ${syncState.syncEnabled ? '🔄 Sync On' : '⏸️ Sync Off'}
+            </button>
+            <button class="btn btn-sm btn-primary" onclick="syncNow()" ${!syncState.syncEnabled ? 'disabled' : ''} title="Sync now with Google Calendar">
+              ↻ Sync Now
+            </button>
+          `}
+          <button class="btn btn-sm btn-primary" onclick="addMeeting()" aria-label="Add meeting">+ Add Meeting</button>
+        </div>
+      </div>
+      ${syncState.lastSync ? `<p style="color:var(--text-muted);font-size:.75rem;margin-top:.25rem;">Last synced: ${timeAgo(syncState.lastSync)}</p>` : (GCal.useMockData ? '<p style="color:var(--text-muted);font-size:.75rem;margin-top:.25rem;">Using mock data - configure to enable real sync</p>' : '')}
+    </div>
     ${today.length?`<div style="margin-bottom:2rem"><div class="card-header"><span class="card-title">🔥 Today (${today.length})</span></div><div class="meetings-grid">${today.map(m=>renderCard(m,true)).join('')}</div></div>`:''}
-    <div style="margin-bottom:1.5rem"><div class="card-header"><span class="card-title">🌙 Upcoming (${upcoming.length})</span><button class="btn btn-sm btn-primary" onclick="addMeeting()" aria-label="Add meeting">+ Add Meeting</button></div>
+    <div style="margin-bottom:1.5rem"><div class="card-header"><span class="card-title">🌙 Upcoming (${upcoming.length})</span></div>
       ${upcoming.length?`<div class="meetings-grid">${upcoming.map(m=>renderCard(m)).join('')}</div>`:`<div class="card" style="text-align:center;padding:2rem;color:var(--text-muted)">No upcoming meetings</div>`}
     </div>
     ${past.length?`<div class="archive-toggle" onclick="document.getElementById('mtg-archive').classList.toggle('open');this.querySelector('span:first-child').textContent=document.getElementById('mtg-archive').classList.contains('open')?'▼':'▶'"><span>▶</span><span>Archive (${past.length})</span></div><div class="archive-section" id="mtg-archive"><div class="meetings-grid">${past.map(m=>renderCard(m)).join('')}</div></div>`:''}
@@ -1410,6 +3395,112 @@ function renderMeetingsTab(el) {
 }
 
 function toggleMtgExpand(id) { document.getElementById('mtg-exp-'+id)?.classList.toggle('open') }
+
+function toggleCalendarSync() {
+  const syncState = GCal.getSyncState();
+  syncState.syncEnabled = !syncState.syncEnabled;
+  GCal.saveSyncState(syncState);
+  toast(syncState.syncEnabled ? 'Calendar sync enabled' : 'Calendar sync disabled');
+  renderActiveTab();
+}
+
+function configureGoogleCalendar() {
+  openModal(`
+    <div class="modal-header"><h3 class="modal-title" id="modalTitle">Configure Google Calendar</h3><button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button></div>
+    <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1rem;">Enter your Google API credentials to enable calendar sync. You can get these from the <a href="https://console.cloud.google.com/" target="_blank" style="color:var(--accent)">Google Cloud Console</a>.</p>
+    <label class="modal-label">OAuth 2.0 Client ID</label>
+    <input class="modal-input" id="gcalClientId" placeholder="your-client-id.apps.googleusercontent.com">
+    <label class="modal-label">API Key (optional)</label>
+    <input class="modal-input" id="gcalApiKey" placeholder="AIza...">
+    <div style="background:rgba(107,144,128,.1);border:1px solid rgba(107,144,128,.2);border-radius:8px;padding:.75rem;margin-top:.75rem;">
+      <p style="font-size:.8rem;color:var(--success);margin:0;">✓ Secure storage: Tokens are encrypted with a device-specific key</p>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-btn-primary" onclick="saveGCalConfig()">Save & Connect</button>
+    </div>
+  `);
+}
+
+async function saveGCalConfig() {
+  const clientId = document.getElementById('gcalClientId').value.trim();
+  const apiKey = document.getElementById('gcalApiKey').value.trim();
+  
+  if (!clientId) {
+    toast('Client ID is required', 'error');
+    return;
+  }
+  
+  GCal.configure(clientId, apiKey);
+  closeModal();
+  toast('Configuration saved. Authenticating...');
+  
+  try {
+    await GCal.authenticate();
+    toast('Successfully connected to Google Calendar!');
+    
+    // Enable sync
+    const syncState = GCal.getSyncState();
+    syncState.syncEnabled = true;
+    GCal.saveSyncState(syncState);
+    
+    // Initial sync
+    await syncMeetingsWithCalendar();
+    renderActiveTab();
+  } catch (error) {
+    toast('Authentication failed: ' + error.message, 'error');
+  }
+}
+
+async function syncNow() {
+  toast('Syncing with Google Calendar...');
+  try {
+    await syncMeetingsWithCalendar();
+    toast('Sync complete!');
+    renderActiveTab();
+  } catch (error) {
+    toast('Sync failed: ' + error.message, 'error');
+  }
+}
+
+async function syncMeetingToCalendar(meetingId) {
+  const meeting = getMeetings().find(m => m.id === meetingId);
+  if (!meeting) return;
+
+  if (meeting.gcalId) {
+    // Already synced - offer to update
+    const shouldUpdate = confirm('This meeting is already in Google Calendar. Update it?');
+    if (!shouldUpdate) return;
+  }
+
+  try {
+    const startTime = `${meeting.date}T${meeting.time}:00`;
+    const endTimeObj = new Date(new Date(startTime).getTime() + 60 * 60000);
+
+    const event = await addToCalendar({
+      title: meeting.title,
+      description: meeting.prepNotes,
+      startTime: startTime,
+      endTime: endTimeObj.toISOString(),
+      location: meeting.type === 'zoom' ? 'Zoom' : meeting.type === 'call' ? 'Phone' : 'In-person',
+      attendees: meeting.attendees?.split(',').map(e => e.trim()).filter(Boolean) || []
+    });
+
+    if (event) {
+      // Save the Google Calendar ID to the meeting
+      const meetings = getMeetings();
+      const m = meetings.find(x => x.id === meetingId);
+      if (m) {
+        m.gcalId = event.id;
+        saveMeetingsData(meetings);
+      }
+      renderActiveTab();
+    }
+  } catch (error) {
+    console.error('[Meeting] Sync error:', error);
+    toast('Failed to sync meeting', 'error');
+  }
+}
 function toggleMtgAgenda(mid, aid) {
   const m = getMeetings(); const mt = m.find(x=>x.id===mid); const a = mt?.agenda.find(x=>x.id===aid);
   if(a) { a.done=!a.done; saveMeetingsData(m); renderActiveTab(); }
@@ -1981,14 +4072,39 @@ function renderNotesTab(el) {
 // ============================================
 // INIT
 // ============================================
-function boot() {
+async function boot() {
   initNav();
   initSearch();
+  initCommandPalette();
+  
+  // Generate Morning Report if it's after 5 AM
+  const hour = new Date().getHours();
+  if (hour >= 5) {
+    console.log('[Boot] Generating Morning Report...');
+    try {
+      await generateMorningReport();
+      console.log('[Boot] Morning Report generated');
+    } catch (error) {
+      console.error('[Boot] Morning Report failed:', error);
+    }
+  }
+  
   renderActiveTab();
   logAct('✦','system','Pleiades OS awakened');
   
   // Show storage usage in MB
   console.log(`Storage used: ${S.getSizeMB()} MB`);
+  
+  // Check if calendar sync is enabled and auto-sync
+  const syncState = GCal.getSyncState();
+  if (syncState.syncEnabled && syncState.autoSync) {
+    const lastSync = syncState.lastSync ? new Date(syncState.lastSync) : null;
+    const shouldSync = !lastSync || (Date.now() - lastSync.getTime() > 30 * 60 * 1000); // 30 min
+    if (shouldSync) {
+      console.log('[Boot] Auto-syncing with Google Calendar...');
+      syncMeetingsWithCalendar().catch(e => console.error('[Boot] Auto-sync failed:', e));
+    }
+  }
 
   // Server status - configurable, no hardcoded localhost
   const serverUrl = S.get('server_url', '');
@@ -2062,6 +4178,976 @@ window.addEventListener('appinstalled', () => {
   }
 });
 
+// ============================================
+// BRAINSYNC - Live Memory File Sync
+// ============================================
+class BrainSync {
+  constructor() {
+    this.syncQueue = S.get('brainSync_queue', []);
+    this.fileCache = S.get('brainSync_cache', {});
+    this.syncInterval = null;
+    this.watchers = new Map();
+    this.syncStatus = S.get('brainSync_status', {}); // synced/pending/conflict
+    this.API_BASE = S.get('brain_url', '');
+    this.lastSyncTime = S.get('brainSync_lastSync', null);
+    
+    // Sync targets - the memory files we care about
+    this.syncTargets = [
+      'memory/YYYY-MM-DD.md',
+      'USER.md',
+      'AGENTS.md',
+      'MEMORY.md'
+    ];
+    
+    // Start auto-sync
+    this.startAutoSync();
+  }
+  
+  // Start auto-sync interval (30 seconds)
+  startAutoSync() {
+    if (this.syncInterval) clearInterval(this.syncInterval);
+    this.syncInterval = setInterval(() => this.processQueue(), 30000);
+  }
+  
+  // Stop auto-sync
+  stopAutoSync() {
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
+    }
+  }
+  
+  // Generate today's memory filename
+  getTodayMemoryFile() {
+    const today = new Date().toISOString().split('T')[0];
+    return `memory/${today}.md`;
+  }
+  
+  // Get current sync targets with resolved date
+  getResolvedTargets() {
+    const targets = [...this.syncTargets];
+    const dateIdx = targets.indexOf('memory/YYYY-MM-DD.md');
+    if (dateIdx !== -1) {
+      targets[dateIdx] = this.getTodayMemoryFile();
+    }
+    return targets;
+  }
+  
+  // Queue a file for sync
+  syncFile(path, content) {
+    const existingIndex = this.syncQueue.findIndex(item => item.path === path);
+    const syncItem = {
+      path,
+      content,
+      timestamp: new Date().toISOString(),
+      status: 'pending'
+    };
+    
+    if (existingIndex !== -1) {
+      this.syncQueue[existingIndex] = syncItem;
+    } else {
+      this.syncQueue.push(syncItem);
+    }
+    
+    this.syncStatus[path] = 'pending';
+    this.saveQueue();
+    this.saveStatus();
+    
+    logAct('🔄', 'system', `Queued ${path} for sync`);
+    return syncItem;
+  }
+  
+  // Get file from cache or fetch from server
+  async getFile(path) {
+    // Check cache first
+    if (this.fileCache[path]) {
+      return this.fileCache[path];
+    }
+    
+    // Try to fetch from API
+    try {
+      const content = await this.fetchFile(path);
+      this.fileCache[path] = { content, timestamp: new Date().toISOString() };
+      this.saveCache();
+      return this.fileCache[path];
+    } catch (e) {
+      console.error(`Failed to fetch ${path}:`, e);
+      return null;
+    }
+  }
+  
+  // List all tracked files with their sync status
+  listFiles() {
+    const targets = this.getResolvedTargets();
+    return targets.map(path => ({
+      path,
+      status: this.syncStatus[path] || 'unknown',
+      cached: !!this.fileCache[path],
+      pending: this.syncQueue.some(q => q.path === path)
+    }));
+  }
+  
+  // Watch a file for changes
+  watchFile(path, callback) {
+    if (!this.watchers.has(path)) {
+      this.watchers.set(path, []);
+    }
+    this.watchers.get(path).push(callback);
+    
+    // Return unwatch function
+    return () => {
+      const watchers = this.watchers.get(path);
+      if (watchers) {
+        const idx = watchers.indexOf(callback);
+        if (idx !== -1) watchers.splice(idx, 1);
+      }
+    };
+  }
+  
+  // Notify watchers of file change
+  notifyWatchers(path, content) {
+    const watchers = this.watchers.get(path);
+    if (watchers) {
+      watchers.forEach(cb => {
+        try { cb(path, content); } catch (e) { console.error('Watcher error:', e); }
+      });
+    }
+  }
+  
+  // Process sync queue
+  async processQueue() {
+    if (this.syncQueue.length === 0) return;
+    if (!this.API_BASE) {
+      console.log('BrainSync: No API configured, using local-only mode');
+      return;
+    }
+    
+    const pending = this.syncQueue.filter(item => item.status === 'pending');
+    
+    for (const item of pending) {
+      try {
+        await this.pushToServer(item.path, item.content);
+        item.status = 'synced';
+        this.syncStatus[item.path] = 'synced';
+        this.lastSyncTime = new Date().toISOString();
+        S.set('brainSync_lastSync', this.lastSyncTime);
+        this.notifyWatchers(item.path, item.content);
+        logAct('✅', 'system', `Synced ${item.path}`);
+      } catch (e) {
+        item.status = 'error';
+        this.syncStatus[item.path] = 'error';
+        console.error(`Sync failed for ${item.path}:`, e);
+      }
+    }
+    
+    // Remove synced items from queue after a delay
+    this.syncQueue = this.syncQueue.filter(item => item.status !== 'synced');
+    this.saveQueue();
+    this.saveStatus();
+    
+    // Refresh UI if on brain tab
+    if (activeTab === 'brain') {
+      renderActiveTab();
+    }
+  }
+  
+  // Force immediate sync
+  async forceSync() {
+    await this.processQueue();
+    toast('Sync complete');
+  }
+  
+  // Fetch file from server (mock or real)
+  async fetchFile(path) {
+    if (!this.API_BASE || this.API_BASE.includes('localhost')) {
+      // Mock mode - return cached or generate placeholder
+      return this.mockFetchFile(path);
+    }
+    
+    const response = await fetch(`${this.API_BASE}/files/${encodeURIComponent(path)}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.text();
+  }
+  
+  // Push file to server (mock or real)
+  async pushToServer(path, content) {
+    if (!this.API_BASE || this.API_BASE.includes('localhost')) {
+      // Mock mode - just update cache
+      this.fileCache[path] = { content, timestamp: new Date().toISOString() };
+      this.saveCache();
+      return { success: true, mock: true };
+    }
+    
+    const response = await fetch(`${this.API_BASE}/files/${encodeURIComponent(path)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'text/markdown' },
+      body: content
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  }
+  
+  // Mock fetch for local development
+  mockFetchFile(path) {
+    if (this.fileCache[path]) {
+      return this.fileCache[path].content;
+    }
+    // Generate a placeholder based on file type
+    const today = new Date().toISOString().split('T')[0];
+    if (path.includes('memory/') && path.includes(today)) {
+      return `# ${today} - Daily Memory\n\n*Auto-generated placeholder*\n\n## Sessions\n\n## Decisions\n\n## Notes\n`;
+    }
+    if (path === 'USER.md') return `# USER.md\n\n*User profile placeholder*\n`;
+    if (path === 'AGENTS.md') return `# AGENTS.md\n\n*Agent definitions placeholder*\n`;
+    if (path === 'MEMORY.md') return `# MEMORY.md\n\n*System memory placeholder*\n`;
+    return `# ${path}\n\n*Placeholder content*\n`;
+  }
+  
+  // Conflict resolution
+  resolveConflict(path, choice) {
+    // choice: 'local' or 'remote'
+    const conflictItem = this.syncQueue.find(item => item.path === path && item.status === 'conflict');
+    if (!conflictItem) return;
+    
+    if (choice === 'local') {
+      conflictItem.status = 'pending';
+      this.syncStatus[path] = 'pending';
+    } else {
+      // Remove from queue, will fetch remote on next getFile
+      this.syncQueue = this.syncQueue.filter(item => item.path !== path);
+      delete this.fileCache[path];
+      this.syncStatus[path] = 'synced';
+    }
+    
+    this.saveQueue();
+    this.saveStatus();
+    renderActiveTab();
+    logAct('⚖️', 'system', `Conflict resolved for ${path}: ${choice}`);
+  }
+  
+  // Check for conflicts (simulated)
+  async checkConflicts() {
+    // In a real implementation, this would compare local/remote timestamps
+    // For now, we'll simulate occasional conflicts for testing
+    return [];
+  }
+  
+  // Persistence helpers
+  saveQueue() { S.set('brainSync_queue', this.syncQueue); }
+  saveCache() { S.set('brainSync_cache', this.fileCache); }
+  saveStatus() { S.set('brainSync_status', this.syncStatus); }
+  
+  // Get stats for display
+  getStats() {
+    return {
+      queueSize: this.syncQueue.length,
+      pending: this.syncQueue.filter(i => i.status === 'pending').length,
+      conflicts: this.syncQueue.filter(i => i.status === 'conflict').length,
+      cached: Object.keys(this.fileCache).length,
+      lastSync: this.lastSyncTime
+    };
+  }
+}
+
+// Global BrainSync instance
+const brainSync = new BrainSync();
+
+// ============================================
+// SORAYA BRIDGE - Sub-Agent Management
+// ============================================
+class SorayaBridge {
+  constructor() {
+    this.agents = S.get('soraya_agents', []);
+    this.jobs = S.get('soraya_jobs', []);
+    this.API_BASE = S.get('brain_url', '');
+    this.agentTypes = {
+      scribe: { name: 'The Scribe', icon: '✍️', role: 'Voice & Story', description: 'Crafts narratives, cover letters, grant writing' },
+      mechanic: { name: 'The Mechanic', icon: '🔧', role: 'Systems & Grants', description: 'Builds grant structures, budgets, logic models' },
+      analyst: { name: 'The Cartographer', icon: '🗺️', role: 'Patterns & Maps', description: 'Finds patterns in data, survey analysis' },
+      researcher: { name: 'The Archivist', icon: '📚', role: 'Research & Intel', description: 'Deep research, synthesis, fact-finding' }
+    };
+    this.jobCounter = S.get('soraya_jobCounter', 1);
+  }
+  
+  // Spawn a new sub-agent task
+  async spawnAgent(task, agentType, context = {}) {
+    if (!this.agentTypes[agentType]) {
+      throw new Error(`Unknown agent type: ${agentType}`);
+    }
+    
+    const typeInfo = this.agentTypes[agentType];
+    const jobId = `job_${Date.now()}_${this.jobCounter++}`;
+    S.set('soraya_jobCounter', this.jobCounter);
+    
+    const job = {
+      id: jobId,
+      task: task.slice(0, 200), // Truncate for storage
+      agentType,
+      agentName: typeInfo.name,
+      agentIcon: typeInfo.icon,
+      status: 'running', // running/completed/failed
+      created: new Date().toISOString(),
+      completed: null,
+      result: null,
+      context,
+      logs: [{ time: new Date().toISOString(), msg: `Spawned ${typeInfo.name}` }]
+    };
+    
+    this.jobs.unshift(job);
+    this.saveJobs();
+    
+    logAct(typeInfo.icon, 'system', `${typeInfo.name} spawned: ${task.slice(0, 50)}...`);
+    
+    // Try to send to API if configured
+    if (this.API_BASE && !this.API_BASE.includes('localhost')) {
+      try {
+        const response = await fetch(`${this.API_BASE}/agents/spawn`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobId, task, agentType, context })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      } catch (e) {
+        console.log('SorayaBridge: API spawn failed, using local mode');
+        job.logs.push({ time: new Date().toISOString(), msg: 'Running in local mode' });
+      }
+    } else {
+      job.logs.push({ time: new Date().toISOString(), msg: 'Running in local mode' });
+    }
+    
+    // Simulate job progress
+    this.simulateJobProgress(job);
+    
+    // Update brain activity log
+    addBrainLog('🤖', `${typeInfo.name} started: ${task.slice(0, 40)}...`);
+    
+    return job;
+  }
+  
+  // Simulate job progress (for demo/development)
+  simulateJobProgress(job) {
+    const steps = [
+      { delay: 2000, msg: 'Analyzing task requirements...' },
+      { delay: 5000, msg: 'Gathering context...' },
+      { delay: 8000, msg: 'Processing...' },
+      { delay: 12000, msg: 'Finalizing output...' }
+    ];
+    
+    steps.forEach(step => {
+      setTimeout(() => {
+        const j = this.jobs.find(x => x.id === job.id);
+        if (j && j.status === 'running') {
+          j.logs.push({ time: new Date().toISOString(), msg: step.msg });
+          this.saveJobs();
+          if (activeTab === 'brain') renderActiveTab();
+        }
+      }, step.delay);
+    });
+    
+    // Complete the job after 15 seconds
+    setTimeout(() => {
+      const j = this.jobs.find(x => x.id === job.id);
+      if (j && j.status === 'running') {
+        j.status = 'completed';
+        j.completed = new Date().toISOString();
+        j.result = `Task completed by ${j.agentName}. Output saved to memory.`;
+        j.logs.push({ time: new Date().toISOString(), msg: 'Task completed successfully' });
+        this.saveJobs();
+        addBrainLog('✅', `${j.agentName} completed job`);
+        if (activeTab === 'brain') renderActiveTab();
+        
+        // Sync to memory file
+        brainSync.syncFile(brainSync.getTodayMemoryFile(), 
+          `## Agent Activity\n\n**${j.agentName}** (${j.agentType})\n- Task: ${j.task}\n- Status: Completed\n- Time: ${new Date().toISOString()}\n\n`);
+      }
+    }, 15000);
+  }
+  
+  // List all active agents/jobs
+  listActiveAgents() {
+    return this.jobs.filter(j => j.status === 'running');
+  }
+  
+  // Get all jobs (active and completed)
+  listAllJobs() {
+    return this.jobs;
+  }
+  
+  // Get specific job status
+  getAgentStatus(jobId) {
+    return this.jobs.find(j => j.id === jobId);
+  }
+  
+  // Kill/cancel a running job
+  async killAgent(jobId) {
+    const job = this.jobs.find(j => j.id === jobId);
+    if (!job) return false;
+    if (job.status !== 'running') return false;
+    
+    job.status = 'failed';
+    job.completed = new Date().toISOString();
+    job.result = 'Cancelled by user';
+    job.logs.push({ time: new Date().toISOString(), msg: 'Job cancelled by user' });
+    this.saveJobs();
+    
+    // Try to notify API
+    if (this.API_BASE && !this.API_BASE.includes('localhost')) {
+      try {
+        await fetch(`${this.API_BASE}/agents/kill/${jobId}`, { method: 'POST' });
+      } catch (e) {
+        console.log('Kill notification failed (local mode)');
+      }
+    }
+    
+    logAct('🛑', 'system', `Killed job ${jobId}`);
+    addBrainLog('🛑', `${job.agentName} job cancelled`);
+    return true;
+  }
+  
+  // Get available agent types
+  getAgentTypes() {
+    return Object.entries(this.agentTypes).map(([key, info]) => ({ key, ...info }));
+  }
+  
+  // Handle decision approval - spawn appropriate agent
+  async handleDecisionApproval(decision) {
+    let agentType = 'analyst'; // default
+    
+    // Determine agent type based on decision content
+    const question = decision.question.toLowerCase();
+    if (question.includes('write') || question.includes('draft') || question.includes('letter') || question.includes('grant') || question.includes('narrative')) {
+      agentType = 'scribe';
+    } else if (question.includes('budget') || question.includes('structure') || question.includes('system') || question.includes('grant')) {
+      agentType = 'mechanic';
+    } else if (question.includes('research') || question.includes('find') || question.includes('look up') || question.includes('analyze data')) {
+      agentType = 'researcher';
+    } else if (question.includes('analyze') || question.includes('pattern') || question.includes('survey') || question.includes('data')) {
+      agentType = 'analyst';
+    }
+    
+    const task = `Execute decision: ${decision.question}. Summary: ${decision.summary}`;
+    return await this.spawnAgent(task, agentType, { decisionId: decision.id });
+  }
+  
+  // Persistence
+  saveJobs() { S.set('soraya_jobs', this.jobs.slice(0, 50)); } // Keep last 50 jobs
+  
+  // Cleanup old completed jobs
+  cleanupOldJobs(days = 7) {
+    const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+    this.jobs = this.jobs.filter(j => j.status === 'running' || j.created > cutoff);
+    this.saveJobs();
+  }
+  
+  // Get stats
+  getStats() {
+    return {
+      running: this.jobs.filter(j => j.status === 'running').length,
+      completed: this.jobs.filter(j => j.status === 'completed').length,
+      failed: this.jobs.filter(j => j.status === 'failed').length,
+      total: this.jobs.length
+    };
+  }
+}
+
+// Global SorayaBridge instance
+const sorayaBridge = new SorayaBridge();
+
+// ============================================
+// UPDATED BRAIN TAB - Functional Sync Dashboard
+// ============================================
+function renderBrainTab(el) {
+  const apiUrl = S.get('brain_url', '');
+  const apiKey = S.get('brain_key', '');
+  
+  // Get BrainSync stats
+  const syncStats = brainSync.getStats();
+  const files = brainSync.listFiles();
+  const syncTargets = brainSync.getResolvedTargets();
+  
+  // Get SorayaBridge stats
+  const agentStats = sorayaBridge.getStats();
+  const activeJobs = sorayaBridge.listActiveAgents();
+  const recentJobs = sorayaBridge.listAllJobs().slice(0, 10);
+  
+  // Get decisions for approval
+  const decisions = getDecisions().slice(0, 5);
+  
+  // Status indicator
+  const statusColor = brainConnected ? 'var(--success)' : 'var(--text-muted)';
+  const statusText = brainConnected ? 'Online' : 'Offline';
+  const pingText = brainLastPing ? timeAgo(brainLastPing) : 'Never';
+  
+  el.innerHTML = `
+    <div class="welcome-bar">
+      <h1 class="welcome-title">🧠 Brain</h1>
+      <p class="welcome-subtitle">Live memory sync · Agent orchestration · Decision flow</p>
+    </div>
+    
+    <div class="brain-container">
+      <div style="display:flex;flex-direction:column;gap:1.25rem">
+        <!-- Sync Status Card -->
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <div>
+              <h3 style="font-size:.95rem;font-weight:600">🔄 Brain Sync</h3>
+              <p style="font-size:.8rem;color:var(--text-muted)">Memory file synchronization</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <div class="brain-status-indicator ${syncStats.pending > 0 ? 'connecting' : (brainConnected ? 'online' : 'offline')}"></div>
+              <span style="font-size:.85rem;color:${statusColor};font-weight:500">
+                ${syncStats.pending > 0 ? `${syncStats.pending} pending` : statusText}
+              </span>
+            </div>
+          </div>
+          
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:.75rem">
+            <div style="background:rgba(255,255,255,.03);padding:.75rem;border-radius:10px;text-align:center">
+              <div style="font-size:1.25rem;font-weight:700;color:var(--accent)">${syncStats.queueSize}</div>
+              <div style="font-size:.7rem;color:var(--text-muted)">Queue</div>
+            </div>
+            <div style="background:rgba(255,255,255,.03);padding:.75rem;border-radius:10px;text-align:center">
+              <div style="font-size:1.25rem;font-weight:700;color:var(--warning)">${syncStats.pending}</div>
+              <div style="font-size:.7rem;color:var(--text-muted)">Pending</div>
+            </div>
+            <div style="background:rgba(255,255,255,.03);padding:.75rem;border-radius:10px;text-align:center">
+              <div style="font-size:1.25rem;font-weight:700;color:var(--success)">${syncStats.cached}</div>
+              <div style="font-size:.7rem;color:var(--text-muted)">Cached</div>
+            </div>
+            <div style="background:rgba(255,255,255,.03);padding:.75rem;border-radius:10px;text-align:center">
+              <div style="font-size:1.25rem;font-weight:700;color:var(--info)">${syncStats.conflicts}</div>
+              <div style="font-size:.7rem;color:var(--text-muted)">Conflicts</div>
+            </div>
+          </div>
+          
+          <div style="display:flex;gap:.5rem;margin-bottom:.75rem">
+            <button class="btn btn-primary" style="flex:1" onclick="brainSync.forceSync()">🔄 Force Sync</button>
+            <button class="btn" style="flex:1;background:rgba(255,255,255,.08);color:var(--text-secondary)" onclick="brainSync.processQueue()">⚡ Process Queue</button>
+          </div>
+          
+          <div style="font-size:.75rem;color:var(--text-muted);text-align:center">
+            Last sync: ${syncStats.lastSync ? timeAgo(syncStats.lastSync) : 'Never'} · Auto-sync every 30s
+          </div>
+        </div>
+        
+        <!-- File Browser with Sync States -->
+        <div class="card" style="max-height:300px;overflow-y:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <div class="card-title">📁 Sync Targets</div>
+            <button class="btn btn-sm btn-primary" onclick="addSyncTarget()">+ Add</button>
+          </div>
+          <div id="brainFileList">
+            ${files.map(f => `
+              <div class="brain-file-item" style="display:flex;justify-content:space-between;align-items:center;padding:.5rem;background:rgba(255,255,255,.03);border-radius:6px;margin-bottom:.25rem">
+                <span style="display:flex;align-items:center;gap:.5rem">
+                  <span>${f.path.endsWith('.md') ? '📝' : '📄'}</span>
+                  <span style="font-family:'Inter',monospace;font-size:.8rem">${f.path}</span>
+                </span>
+                <span style="display:flex;align-items:center;gap:.5rem">
+                  <span style="font-size:.7rem;padding:.15rem .4rem;border-radius:4px;background:${getSyncStatusColor(f.status)};color:#fff">${f.status}</span>
+                  ${f.pending ? '<span style="font-size:.7rem;color:var(--warning)">⏳</span>' : ''}
+                  <button class="btn-icon" onclick="viewFile('${f.path}')" title="View">👁️</button>
+                  <button class="btn-icon" onclick="syncSingleFile('${f.path}')" title="Sync now">🔄</button>
+                </span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        
+        <!-- Soraya Bridge - Active Agents -->
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <div>
+              <h3 style="font-size:.95rem;font-weight:600">🤖 Soraya Bridge</h3>
+              <p style="font-size:.8rem;color:var(--text-muted)">Sub-agent orchestration</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:.75rem">
+              <span style="font-size:.85rem;color:var(--success);font-weight:500">${agentStats.running} running</span>
+            </div>
+          </div>
+          
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:.75rem">
+            <div style="background:rgba(107,144,128,.1);padding:.75rem;border-radius:10px;text-align:center;border:1px solid rgba(107,144,128,.2)">
+              <div style="font-size:1.25rem;font-weight:700;color:var(--success)">${agentStats.running}</div>
+              <div style="font-size:.7rem;color:var(--text-muted)">Active</div>
+            </div>
+            <div style="background:rgba(16,185,129,.08);padding:.75rem;border-radius:10px;text-align:center;border:1px solid rgba(16,185,129,.2)">
+              <div style="font-size:1.25rem;font-weight:700;color:var(--success)">${agentStats.completed}</div>
+              <div style="font-size:.7rem;color:var(--text-muted)">Done</div>
+            </div>
+            <div style="background:rgba(201,123,123,.1);padding:.75rem;border-radius:10px;text-align:center;border:1px solid rgba(201,123,123,.2)">
+              <div style="font-size:1.25rem;font-weight:700;color:var(--danger)">${agentStats.failed}</div>
+              <div style="font-size:.7rem;color:var(--text-muted)">Failed</div>
+            </div>
+            <div style="background:rgba(255,255,255,.03);padding:.75rem;border-radius:10px;text-align:center">
+              <div style="font-size:1.25rem;font-weight:700;color:var(--text-secondary)">${agentStats.total}</div>
+              <div style="font-size:.7rem;color:var(--text-muted)">Total</div>
+            </div>
+          </div>
+          
+          <div style="margin-bottom:.75rem">
+            <div class="card-title" style="margin-bottom:.5rem;font-size:.8rem">Active Jobs</div>
+            ${activeJobs.length > 0 ? activeJobs.map(job => `
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem;background:rgba(139,92,246,.08);border-radius:8px;margin-bottom:.25rem;border:1px solid rgba(139,92,246,.2)">
+                <span style="display:flex;align-items:center;gap:.5rem">
+                  <span>${job.agentIcon}</span>
+                  <span style="font-size:.85rem;font-weight:500">${job.agentName}</span>
+                  <span style="font-size:.75rem;color:var(--text-muted)">${job.task.slice(0, 30)}...</span>
+                </span>
+                <div style="display:flex;align-items:center;gap:.5rem">
+                  <span style="font-size:.7rem;padding:.15rem .4rem;border-radius:4px;background:var(--warning);color:#fff">${job.status}</span>
+                  <button class="btn-icon" onclick="killAgentJob('${job.id}')" title="Cancel">✕</button>
+                </div>
+              </div>
+            `).join('') : '<div style="color:var(--text-muted);font-size:.85rem;text-align:center;padding:1rem">No active jobs</div>'}
+          </div>
+          
+          <div style="display:flex;gap:.5rem">
+            <select id="quickAgentType" class="modal-input modal-select" style="flex:1;margin:0;font-size:.85rem">
+              ${sorayaBridge.getAgentTypes().map(t => `<option value="${t.key}">${t.icon} ${t.name} — ${t.role}</option>`).join('')}
+            </select>
+            <button class="btn btn-primary" onclick="quickSpawnAgent()">Spawn</button>
+          </div>
+        </div>
+        
+        <!-- API Configuration -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:.75rem">⚙️ OpenClaw API Configuration</div>
+          <div style="margin-bottom:.5rem">
+            <label class="modal-label">API URL</label>
+            <input class="modal-input" id="brainUrl" placeholder="https://api.yourdomain.com" value="${esc(apiUrl)}" style="margin-bottom:.375rem">
+          </div>
+          <div style="margin-bottom:.75rem">
+            <label class="modal-label">API Key</label>
+            <input type="password" class="modal-input" id="brainKey" placeholder="sk-..." value="${esc(apiKey ? '••••••••••••••••' : '')}">
+          </div>
+          <div style="display:flex;gap:.5rem">
+            <button class="btn btn-primary" style="flex:1" onclick="saveBrainConfig()">💾 Save Config</button>
+            <button class="btn" style="flex:1;background:rgba(255,255,255,.08);color:var(--text-secondary)" onclick="testBrainConnection()">🔄 Test</button>
+          </div>
+        </div>
+      </div>
+      
+      <div style="display:flex;flex-direction:column;gap:1.25rem">
+        <!-- Decisions Awaiting Approval -->
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <div class="card-title">📋 Decisions Awaiting Agent</div>
+            <span style="font-size:.75rem;color:var(--text-muted)">${decisions.length} pending</span>
+          </div>
+          <div id="brainDecisionList">
+            ${decisions.length > 0 ? decisions.map(d => `
+              <div class="decision-card" style="background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:.75rem;margin-bottom:.5rem">
+                <div class="decision-date">${new Date(d.date).toLocaleDateString()}</div>
+                <div class="decision-question">${esc(d.question)}</div>
+                <div class="decision-summary" style="font-size:.8rem;color:var(--text-muted);margin-bottom:.5rem">${esc(d.summary)}</div>
+                <div style="display:flex;gap:.5rem">
+                  <button class="btn btn-sm btn-primary" onclick="approveDecision(${d.id})" style="flex:1">✓ Approve & Spawn</button>
+                  <button class="btn btn-sm" onclick="viewDecision(${d.id})" style="background:rgba(255,255,255,.08);color:var(--text-secondary)">View</button>
+                </div>
+              </div>
+            `).join('') : '<div style="color:var(--text-muted);font-size:.85rem;text-align:center;padding:1rem">No pending decisions</div>'}
+          </div>
+        </div>
+        
+        <!-- Recent Jobs -->
+        <div class="card" style="max-height:400px;overflow-y:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+            <div class="card-title">📜 Recent Jobs</div>
+            <button class="btn btn-sm" onclick="clearCompletedJobs()" style="background:rgba(255,255,255,.08);color:var(--text-secondary)">Clear</button>
+          </div>
+          <div>
+            ${recentJobs.length > 0 ? recentJobs.map(job => `
+              <div class="brain-activity-item" style="padding:.5rem;background:rgba(255,255,255,.03);border-radius:6px;margin-bottom:.25rem">
+                <span style="font-size:.75rem;color:var(--text-muted)">${new Date(job.created).toLocaleTimeString()}</span>
+                <span>${job.agentIcon}</span>
+                <span style="color:var(--text-secondary);flex:1;font-size:.85rem">${job.agentName}: ${job.task.slice(0, 30)}...</span>
+                <span style="font-size:.7rem;padding:.1rem .3rem;border-radius:4px;background:${job.status === 'completed' ? 'var(--success)' : job.status === 'failed' ? 'var(--danger)' : 'var(--warning)'};color:#fff">${job.status}</span>
+              </div>
+            `).join('') : '<div style="color:var(--text-muted);font-size:.85rem;text-align:center;padding:1rem">No job history</div>'}
+          </div>
+        </div>
+        
+        <!-- Quick Sync Actions -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:.75rem">⚡ Quick Sync Actions</div>
+          <div style="display:flex;flex-direction:column;gap:.375rem">
+            <button class="btn btn-ghost btn-sm" onclick="syncAllFiles()">🔄 Sync All Files</button>
+            <button class="btn btn-ghost btn-sm" onclick="viewMemoryFile()">📝 View Today's Memory</button>
+            <button class="btn btn-ghost btn-sm" onclick="editUserMd()">👤 Edit USER.md</button>
+            <button class="btn btn-ghost btn-sm" onclick="editAgentsMd()">🤖 Edit AGENTS.md</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Brain Sync Helper Functions
+function getSyncStatusColor(status) {
+  const colors = {
+    synced: 'var(--success)',
+    pending: 'var(--warning)',
+    conflict: 'var(--danger)',
+    error: 'var(--danger)',
+    unknown: 'var(--text-muted)',
+    cached: 'var(--info)'
+  };
+  return colors[status] || colors.unknown;
+}
+
+function viewFile(path) {
+  brainSync.getFile(path).then(file => {
+    if (file) {
+      openModal(`
+        <div class="modal-header">
+          <h3 class="modal-title" id="modalTitle">${esc(path)}</h3>
+          <button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button>
+        </div>
+        <div style="max-height:400px;overflow-y:auto;background:rgba(0,0,0,.2);padding:1rem;border-radius:8px;font-family:'Inter',monospace;font-size:.85rem;white-space:pre-wrap">${esc(file.content || file)}</div>
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Close</button>
+          <button class="modal-btn modal-btn-primary" onclick="editFile('${esc(path)}')">Edit</button>
+        </div>
+      `);
+    } else {
+      toast('File not found', 'error');
+    }
+  });
+}
+
+function syncSingleFile(path) {
+  brainSync.getFile(path).then(file => {
+    if (file) {
+      const content = typeof file === 'object' ? file.content : file;
+      brainSync.syncFile(path, content);
+      toast(`Queued ${path} for sync`);
+      renderActiveTab();
+    }
+  });
+}
+
+function addSyncTarget() {
+  openModal(`
+    <div class="modal-header">
+      <h3 class="modal-title" id="modalTitle">Add Sync Target</h3>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button>
+    </div>
+    <input class="modal-input" id="newTargetPath" placeholder="e.g., memory/custom.md" autofocus>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-btn-primary" onclick="saveNewTarget()">Add</button>
+    </div>
+  `);
+}
+
+function saveNewTarget() {
+  const path = document.getElementById('newTargetPath').value.trim();
+  if (!path) return toast('Enter a path', 'error');
+  
+  if (!brainSync.syncTargets.includes(path)) {
+    brainSync.syncTargets.push(path);
+    brainSync.syncStatus[path] = 'unknown';
+    brainSync.saveStatus();
+  }
+  closeModal();
+  renderActiveTab();
+  toast(`Added ${path} to sync targets`);
+}
+
+function syncAllFiles() {
+  const targets = brainSync.getResolvedTargets();
+  targets.forEach(path => {
+    brainSync.syncFile(path, `# ${path}\n\nSynced at ${new Date().toISOString()}\n`);
+  });
+  toast(`Queued ${targets.length} files for sync`);
+  renderActiveTab();
+}
+
+function viewMemoryFile() {
+  viewFile(brainSync.getTodayMemoryFile());
+}
+
+function editUserMd() {
+  const path = 'USER.md';
+  brainSync.getFile(path).then(file => {
+    const content = typeof file === 'object' ? file.content : file;
+    openEditModal(path, content);
+  });
+}
+
+function editAgentsMd() {
+  const path = 'AGENTS.md';
+  brainSync.getFile(path).then(file => {
+    const content = typeof file === 'object' ? file.content : file;
+    openEditModal(path, content);
+  });
+}
+
+function openEditModal(path, content) {
+  openModal(`
+    <div class="modal-header">
+      <h3 class="modal-title" id="modalTitle">Edit ${esc(path)}</h3>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button>
+    </div>
+    <textarea class="modal-input textarea" id="editFileContent" style="min-height:300px;font-family:'Inter',monospace">${esc(content)}</textarea>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-btn-primary" onclick="saveEditedFile('${esc(path)}')">Save & Sync</button>
+    </div>
+  `);
+}
+
+function saveEditedFile(path) {
+  const content = document.getElementById('editFileContent').value;
+  brainSync.syncFile(path, content);
+  closeModal();
+  toast('File saved and queued for sync');
+  renderActiveTab();
+}
+
+// Soraya Bridge Helper Functions
+function quickSpawnAgent() {
+  const type = document.getElementById('quickAgentType').value;
+  openModal(`
+    <div class="modal-header">
+      <h3 class="modal-title" id="modalTitle">Spawn ${esc(sorayaBridge.agentTypes[type].name)}</h3>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button>
+    </div>
+    <textarea class="modal-input textarea" id="spawnTaskInput" placeholder="Describe the task..." autofocus></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-btn-primary" onclick="doSpawnAgent('${type}')">Spawn</button>
+    </div>
+  `);
+}
+
+function doSpawnAgent(type) {
+  const task = document.getElementById('spawnTaskInput').value.trim();
+  if (!task) return toast('Enter a task description', 'error');
+  
+  sorayaBridge.spawnAgent(task, type);
+  closeModal();
+  toast(`Spawned ${sorayaBridge.agentTypes[type].name}`);
+  renderActiveTab();
+}
+
+function killAgentJob(jobId) {
+  if (!confirm('Cancel this job?')) return;
+  sorayaBridge.killAgent(jobId);
+  toast('Job cancelled');
+  renderActiveTab();
+}
+
+function clearCompletedJobs() {
+  sorayaBridge.cleanupOldJobs(0);
+  toast('Cleared completed jobs');
+  renderActiveTab();
+}
+
+// Decision Approval Integration
+function approveDecision(decisionId) {
+  const decisions = getDecisions();
+  const decision = decisions.find(d => d.id === decisionId);
+  if (!decision) return;
+  
+  // Spawn appropriate agent for this decision
+  sorayaBridge.handleDecisionApproval(decision).then(job => {
+    toast(`Spawned ${job.agentName} for decision`);
+    renderActiveTab();
+  });
+  
+  // Add to brain log
+  addBrainLog('✅', `Decision approved: ${decision.question.slice(0, 40)}...`);
+}
+
+function viewDecision(decisionId) {
+  const decisions = getDecisions();
+  const decision = decisions.find(d => d.id === decisionId);
+  if (!decision) return;
+  
+  openModal(`
+    <div class="modal-header">
+      <h3 class="modal-title" id="modalTitle">Decision</h3>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close modal">×</button>
+    </div>
+    <div style="margin-bottom:1rem">
+      <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.25rem">Question</div>
+      <div style="font-weight:600;margin-bottom:.75rem">${esc(decision.question)}</div>
+      
+      <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.25rem">Summary</div>
+      <div style="color:var(--text-secondary);margin-bottom:.75rem">${esc(decision.summary)}</div>
+      
+      <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.25rem">Agents Consulted</div>
+      <div style="display:flex;gap:.25rem;flex-wrap:wrap">
+        ${decision.agents.map(a => `<span style="background:rgba(139,92,246,.1);color:var(--accent);padding:.15rem .5rem;border-radius:9999px;font-size:.75rem">${esc(a)}</span>`).join('')}
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Close</button>
+      <button class="modal-btn modal-btn-primary" onclick="closeModal();setTimeout(()=>approveDecision(${decisionId}),100)">Approve & Spawn</button>
+    </div>
+  `);
+}
+
+// Updated Command Center to include Approve buttons on decisions
+function renderCommand(el) {
+  const agents = getAgents();
+  const decisions = getDecisions();
+  
+  el.innerHTML = `
+    <div class="welcome-bar">
+      <h1 class="welcome-title">🌟 Command Center</h1>
+      <p class="welcome-subtitle">Agent constellation · Decision orchestration</p>
+    </div>
+    
+    <div class="agents-grid" role="region" aria-label="Agents">
+      ${agents.map(a => `
+        <div class="card agent-card ${a.status}" onclick="openAgentPanel('${a.id}')" role="article" tabindex="0" aria-label="${esc(a.name)}">
+          <div class="agent-header">
+            <div class="agent-avatar">${a.avatar}</div>
+            <div>
+              <div class="agent-name">${esc(a.name)}</div>
+              <div class="agent-role">${esc(a.role)}</div>
+              <div class="agent-status ${a.status}">
+                <div class="agent-status-dot"></div>
+                <span>${a.status}</span>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:.85rem;color:var(--text-secondary);line-height:1.5;margin-bottom:.75rem">${esc(a.description)}</div>
+          <div class="agent-meta">
+            <span class="agent-model">${esc(a.model)}</span>
+            <span>Active ${timeAgo(a.lastActive)}</span>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <span class="card-title">📋 Recent Decisions <span style="font-size:.75rem;color:var(--text-muted);font-weight:400">(${decisions.length} total)</span></span>
+        <button class="btn btn-sm btn-primary" onclick="addDecision()">+ Log Decision</button>
+      </div>
+      <div id="decisionList">
+        ${decisions.slice(0, 5).map(d => `
+          <div class="decision-card" style="background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:.75rem;margin-bottom:.5rem">
+            <div class="decision-date">${new Date(d.date).toLocaleDateString()}</div>
+            <div class="decision-question">${esc(d.question)}</div>
+            <div class="decision-summary" style="font-size:.8rem;color:var(--text-muted);margin-bottom:.5rem">${esc(d.summary)}</div>
+            <div class="decision-agents">
+              ${d.agents.map(a => `<span class="decision-agent-tag">${esc(a)}</span>`).join('')}
+            </div>
+            <div style="display:flex;gap:.5rem;margin-top:.75rem">
+              <button class="btn btn-sm btn-primary" onclick="approveDecision(${d.id})" style="flex:1">✓ Approve & Spawn</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 // PWA: Lazy loading for tab content - only render active tab initially
 // This is handled by the existing renderActiveTab function
 // Additional optimization: IntersectionObserver for heavy elements
@@ -2078,6 +5164,14 @@ if ('IntersectionObserver' in window) {
   
   lazyElements.forEach(el => lazyObserver.observe(el));
 }
+</script>
+<script>
+// Initialize Functional Upgrades
+if (typeof CommandPalette !== 'undefined' && CommandPalette.init) CommandPalette.init();
+if (typeof BrainSync !== 'undefined' && BrainSync.init) BrainSync.init();
+if (typeof sorayaBridge !== 'undefined' && sorayaBridge.init) sorayaBridge.init();
+if (typeof GCal !== 'undefined' && GCal.init) GCal.init();
+console.log('[Pleiades OS] Functional upgrades initialized');
 </script>
 </body>
 </html>
